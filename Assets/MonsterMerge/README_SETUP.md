@@ -47,7 +47,7 @@ Tài liệu thiết kế: `MONSTER_MERGE_GDD_v0.1.md`. Danh sách việc: `MONST
 | Assembly | `MonsterMerge.Runtime`, `MonsterMerge.Editor`, `MonsterMerge.Tests` |
 | Package | Không cài thêm package nào |
 | Git | Project chưa phải git repository và chưa có `.gitignore` |
-| Android | Chưa cài. Xem mục Android |
+| Android | Đã cài module, SDK, NDK, OpenJDK; build target đang là Android. Chưa build APK |
 
 **Thay đổi ngoài `Assets/MonsterMerge/`:**
 - Player Settings: orientation từ AutoRotation sang Portrait.
@@ -80,7 +80,7 @@ Ký hiệu:
 | T14 | Hủy chọn mục tiêu | Tự động: pass | `T14_` |
 | T15 | Restart lúc đang hút | Tự động: pass | `T15_` |
 | T16 | Thua lúc đang chọn mục tiêu | Tự động: pass | `T16_` |
-| T17 | Android, cảm ứng 1 ngón | **Chưa chạy**: chưa cài Android | |
+| T17 | Android, cảm ứng 1 ngón | **Chưa chạy**: chưa build APK | |
 | T18 | Đóng/mở app giữ Best Score | **Chưa chạy**: T09 chỉ chứng minh qua Restart | |
 
 Test bổ sung ngoài bảng:
@@ -97,40 +97,24 @@ Bot không dùng nam châm và không có chiến thuật, nên số liệu trê
 
 ## Trạng thái checklist
 
-| Mục | Trạng thái | Ghi chú |
-|---|---|---|
-| P0.1 Nền, bể, camera | [x] | Xác minh bằng ảnh chụp 9:16 và 9:20 |
-| P0.2 Dữ liệu 5 cấp, prefab | [x] | |
-| P0.3 Thả quái | [ ] | Đã pass với chuột giả lập. Còn thử chuột thật và cảm ứng |
-| P0.4 Hợp nhất an toàn | [x] | |
-| P0.5 Điểm, Game Over, Restart | [ ] | Còn xác nhận Best Score sau khi đóng/mở game |
-| Checkpoint P0 | [ ] | Cần người chơi thử một ván thật |
-| P1.1 Vật lý theo cấp | [ ] | Đã đo được khác biệt. Cảm nhận "dễ thấy, không khó chịu" cần người đánh giá |
-| P1.2 Năng lượng | [x] | |
-| P1.3 Magnetic Pull | [x] | |
-| P1.4 Phản hồi chơi thử | [ ] | Đã có pop, flash, +điểm, combo, chỉ dẫn. Chưa thử với người mới |
-| Checkpoint P1 | [ ] | Chưa có phiên chơi tay 10–15 phút |
-| P2 Android | [!] | Bị chặn: chưa cài Android Build Support |
+Bảng trạng thái, kết quả test và lỗi đã sửa nằm ở `production/qa/prototype-v0.1-review.md`. Kết quả chơi thử nằm ở `production/qa/playtests/`.
 
 ## Cần người kiểm tra trong Editor
 
-1. Chơi hết một ván bằng chuột thật, gồm kéo, thả, thua và bấm **Chơi lại**.
+1. Bấm **Chơi lại** sau khi thua, lặp lại vài lần.
 2. Thử cảm giác Boing, Goo và Crag. Goo có quá dính hoặc chưa đủ dính không?
-3. Dùng nam châm trong tình huống thật. Năng lượng có đầy đúng lúc, kỹ năng có đáng dùng không?
+3. Đánh giá nam châm: năng lượng có đầy quá nhanh, kỹ năng có đáng dùng không?
 4. Thoát Play, vào lại, xác nhận Kỷ lục vẫn còn.
 5. Chơi liên tục 10–15 phút và theo dõi Console.
 
 ## Android
 
-Editor hiện chỉ có module Windows và WebGL. Máy chưa có Android SDK, JDK và `adb`. **Chưa build APK nào.**
+Editor đã có module Android, SDK, NDK và OpenJDK; build target đang là Android. **Chưa build APK nào.**
 
-Cách cài:
-1. Mở Unity Hub > Installs > 6000.6.8f1 > Add modules.
-2. Chọn **Android Build Support**, kèm **OpenJDK** và **Android SDK & NDK Tools**.
-3. Trong Unity: File > Build Profiles > Android > Switch Platform.
-4. Bật Development Build, chọn Build, cài APK lên máy và chạy T17, T18.
-5. Kiểm tra thêm mục P2: một ngón, không chạm nhầm UI, frame rate, pause/resume.
-6. Ghi tên máy, phiên bản Android và kết quả thật vào đây.
+1. Trong Unity: File > Build Profiles > Android.
+2. Bật Development Build, chọn Build, cài APK lên máy và chạy T17, T18.
+3. Kiểm tra thêm mục P2: một ngón, không chạm nhầm UI, frame rate, pause/resume.
+4. Ghi tên máy, phiên bản Android và kết quả thật vào `production/qa/`.
 
 ## Known issues
 

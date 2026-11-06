@@ -38,3 +38,21 @@ Thumbs.db
 /Claude-Code-Game-Studios/
 /graphify-out/
 /.mcp.json
+
+# Claude Code Game Studios: file cục bộ, không commit
+.claude/settings.local.json
+.claude/agent-memory/
+.claude/worktrees/
+project.local.yaml
+production/session-logs/
+production/session-state/
+
+# Bộ công cụ Claude Code Game Studios: chỉ giữ trên máy, không đưa lên repo
+/.claude/
+/CLAUDE.md
+/docs/
+/project.yaml
+/design/CLAUDE.md
+/design/registry/
+/production/.gdignore
+/production/stage.txt
