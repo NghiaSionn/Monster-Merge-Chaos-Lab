@@ -1,0 +1,40 @@
+# Unity: thư mục sinh tự động
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# IDE và file sinh bởi Unity
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Bản build
+*.apk
+*.aab
+*.unitypackage
+
+# Hệ điều hành
+.DS_Store
+Thumbs.db
+
+# Công cụ cục bộ, không thuộc game
+/Claude-Code-Game-Studios/
+/graphify-out/
+/.mcp.json

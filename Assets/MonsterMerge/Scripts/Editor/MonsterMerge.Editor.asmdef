@@ -1,0 +1,22 @@
+{
+    "name": "MonsterMerge.Editor",
+    "rootNamespace": "MonsterMerge.EditorTools",
+    "references": [
+        "MonsterMerge.Runtime",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "UnityEditor.TestRunner",
+        "UnityEngine.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
