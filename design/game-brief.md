@@ -27,15 +27,16 @@
 - Multiplayer, leaderboard online, đăng nhập, cloud save.
 - Shop, gacha, tiền tệ, nâng cấp, skin, nhiệm vụ hằng ngày.
 - Quảng cáo, IAP, analytics, SDK ngoài ở prototype.
-- Nhiều màn, nhiều loại bể, nhiều kỹ năng.
+- Nhiều màn, nhiều loại bể, nhiều kỹ năng, tier 6.
 - Soft-body, joint dính, mô phỏng nước, custom physics.
 
 ## Build order
 1. Core loop: thả, hợp nhất, điểm, Game Over, Restart. **Đã xong.**
 2. Vật lý theo cấp, năng lượng, Magnetic Pull. **Đã xong.**
-3. Cân bằng sau playtest: Crag chiếm bể, năng lượng hồi quá nhanh, nam châm bị kẹt. **Đang mở**, xem `production/qa/playtests/2026-11-07-dev-editor-playtest.md`.
-4. Build APK và test trên máy Android thật. **Chưa làm.**
-5. Cho 5–10 người chưa biết game chơi thử. **Chưa làm.**
+3. Sprint v0.2 "Fun & Balance": so sánh A/B luật cấp 5, làm rõ Magni, nhãn dễ đọc, juice, hướng dẫn. **Chưa bắt đầu code**, xem `production/v0.2-scope-notes.md`.
+4. Người phát triển chơi 6 ván A/B theo `production/qa/V02_PLAYTEST_FORM.md`. **Chờ bản v0.2.**
+5. Build APK và test trên máy Android thật. **Chưa làm.**
+6. Cho 5–10 người chưa biết game chơi thử. **Chưa làm.**
 
 ---
 **Who it's for / what they feel:** Người thích game giải trí ngắn, một tay, muốn cảm giác vật lý vui và bất ngờ nhưng không mất kiểm soát.

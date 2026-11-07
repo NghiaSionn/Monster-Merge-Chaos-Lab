@@ -55,9 +55,9 @@
 
 ## Hướng cân bằng cần quyết định
 
-Chưa có thay đổi nào được áp dụng. GDD mục 2.2 yêu cầu quyết định sau playtest:
+Chưa có thay đổi nào được áp dụng. Sprint v0.2 chọn so sánh A/B cho vấn đề Crag và loại tier 6; ba hướng còn lại chưa có task, xem `production/v0.2-scope-notes.md`.
 
-1. Crag: giảm kích thước, thêm cấp 6, hoặc cho cặp Crag biến mất để giải phóng bể.
+1. Crag: đã chọn thử `ClassicCap` với `OverloadBurst` (TASK-01).
 2. Năng lượng: giảm `energyPerMerge`, hoặc chỉ cộng cho merge từ cấp 3 trở lên.
 3. Nam châm: tăng lực, hoặc không trừ năng lượng nếu hai Magni không dịch chuyển.
 4. Combo: rút ngắn `comboWindow`.
