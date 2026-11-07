@@ -28,6 +28,11 @@ namespace MonsterMerge
         private float popElapsed = PopDuration;
         private float flash;
         private float highlight;
+        private Vector3 bodyBaseScale = Vector3.one;
+        private Vector3 labelBaseScale = Vector3.one;
+        private float visualPopElapsed;
+        private float visualPopDuration;
+        private float visualPopOvershoot;
 
         public MonsterData Data { get; private set; }
         public int Tier => Data != null ? Data.tier : 0;
@@ -53,9 +58,44 @@ namespace MonsterMerge
             rigidbody2d.mass = data.mass;
             rigidbody2d.angularDamping = data.rollResistance;
             data.ApplyVisual(body, label);
+            bodyBaseScale = body.transform.localScale;
+            labelBaseScale = label != null ? label.transform.localScale : Vector3.one;
+            visualPopElapsed = visualPopDuration = 0f;
+            VisualPopScale = 1f;
 
             popElapsed = popIn ? 0f : PopDuration;
             ApplyScale();
+        }
+
+        /// <summary>
+        /// Nảy phần hình (thân và số) lên rồi về, không đụng transform gốc nên collider giữ nguyên (v0.2 TASK-04).
+        /// </summary>
+        public void PlayVisualPop(float duration, float overshoot)
+        {
+            visualPopDuration = Mathf.Max(0.01f, duration);
+            visualPopOvershoot = overshoot;
+            visualPopElapsed = 0f;
+        }
+
+        /// <summary>Tỉ lệ phóng hiện tại của phần hình so với kích thước gốc; 1 khi không pop.</summary>
+        public float VisualPopScale { get; private set; } = 1f;
+
+        private void UpdateVisualPop()
+        {
+            if (visualPopElapsed >= visualPopDuration)
+            {
+                return;
+            }
+
+            visualPopElapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(visualPopElapsed / visualPopDuration);
+            VisualPopScale = t >= 1f ? 1f : 1f + visualPopOvershoot * Mathf.Sin(Mathf.PI * t);
+
+            body.transform.localScale = bodyBaseScale * VisualPopScale;
+            if (label != null)
+            {
+                label.transform.localScale = labelBaseScale * VisualPopScale;
+            }
         }
 
         public void MarkDropped()
@@ -121,6 +161,8 @@ namespace MonsterMerge
 
         private void Update()
         {
+            UpdateVisualPop();
+
             if (flash <= 0f || Data == null)
             {
                 return;
@@ -129,6 +171,21 @@ namespace MonsterMerge
             flash = Mathf.Max(0f, flash - Time.deltaTime * FlashFadePerSecond);
             ApplyColor();
         }
+
+        /// <summary>
+        /// Giữ số cấp luôn đứng thẳng trong khi thân vẫn lăn (v0.2 TASK-03).
+        /// Chạy sau khi Rigidbody2D đã nội suy transform, chỉ đổi góc của nhãn nên không tạo lực vật lý.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (label != null)
+            {
+                label.transform.rotation = Quaternion.identity;
+            }
+        }
+
+        /// <summary>Nhãn số cấp; dùng cho test kiểm tra hướng đọc.</summary>
+        public Transform LabelTransform => label != null ? label.transform : null;
 
         private void FixedUpdate()
         {

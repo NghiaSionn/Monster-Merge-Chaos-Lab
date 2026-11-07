@@ -28,6 +28,12 @@ Tài liệu thiết kế: `MONSTER_MERGE_GDD_v0.1.md`. Danh sách việc: `MONST
 
 **Luật cấp cuối A/B (v0.2):** `Managers` > `MergeManager` > nhóm **Cấp cuối (A/B)** > `Max Tier Mode`. `ClassicCap` giữ hành vi v0.1; `OverloadBurst` cho cặp Crag biến mất và thưởng điểm. Mặc định là `ClassicCap`.
 
+**Nam châm (v0.2):** `Managers` > `AbilityManager` > nhóm **Phản hồi**: mức sáng Magni, log số liệu cuối ván.
+
+**Juice (v0.2):** `Managers` > `MergeEffects` > `Juice Enabled`, cùng thời gian pop, vòng sáng, âm thanh và giới hạn số hiệu ứng. Âm thanh mặc định là tiếng bíp sinh bằng code; gắn clip vào `Merge Clip` để thay.
+
+**Cảnh báo:** Build Prototype Scene dựng lại `GameScene` và `Monster.prefab`. Mọi chỉnh sửa tay trong Inspector của hai file này sẽ mất; muốn giữ thì sửa giá trị mặc định trong code hoặc trong builder.
+
 - Từng cấp: `Assets/MonsterMerge/Data/MonsterTier1..5.asset`.
 - Trên object `Managers`:
   - `DropController`: tỷ lệ spawn, cooldown, random seed.

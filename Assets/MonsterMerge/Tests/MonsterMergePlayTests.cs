@@ -356,6 +356,221 @@ namespace MonsterMerge.Tests
             Assert.AreEqual(MaxTierMergeMode.ClassicCap, merge.MaxTierMode, "Restart quay về giá trị Inspector.");
         }
 
+        private static int CountFx(string fxName) => Object.FindObjectsByType<SpriteRenderer>().Count(r => r.name == fxName);
+
+        /// <summary>12 cặp Blip chạm nhau sẵn, xếp 3 hàng; mỗi cặp hợp nhất ngay ở bước vật lý kế tiếp.</summary>
+        private void SpawnTwelveBlipPairs(float baseY)
+        {
+            float[] xs = { -1.65f, -0.55f, 0.55f, 1.65f };
+            for (int row = 0; row < 3; row++)
+            {
+                float y = baseY + row * 0.7f;
+                foreach (float x in xs)
+                {
+                    merge.Spawn(merge.GetTier(1), new Vector2(x - 0.21f, y));
+                    merge.Spawn(merge.GetTier(1), new Vector2(x + 0.21f, y));
+                }
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T04a_TwentyFourMerges_FxPopupsAndSfxStayBounded()
+        {
+            var effects = Object.FindAnyObjectByType<MergeEffects>();
+            var ui = Object.FindAnyObjectByType<GameUI>();
+            Assert.IsTrue(effects.JuiceEnabled, "Mặc định phải bật juice.");
+            var sfxTimes = new System.Collections.Generic.List<float>();
+            effects.SfxPlayed += () => sfxTimes.Add(Time.time);
+            int maxFx = 0;
+            int maxPopups = 0;
+
+            for (int batch = 0; batch < 2; batch++)
+            {
+                SpawnTwelveBlipPairs(tank.FloorY + 0.3f + batch * 2f);
+                for (float end = Time.time + 1.2f; Time.time < end;)
+                {
+                    maxFx = Mathf.Max(maxFx, effects.ActiveCount);
+                    maxPopups = Mathf.Max(maxPopups, ui.ActivePopupCount);
+                    yield return null;
+                }
+            }
+
+            TestContext.Out.WriteLine($"merge={merge.MergeCount}, sfx={sfxTimes.Count}, fx tối đa={maxFx}, popup tối đa={maxPopups}");
+            Assert.GreaterOrEqual(merge.MergeCount, 24);
+            Assert.LessOrEqual(maxFx, 8, "Vòng sáng không được vượt giới hạn.");
+            Assert.LessOrEqual(maxPopups, 6, "Popup điểm không được vượt giới hạn.");
+            Assert.GreaterOrEqual(sfxTimes.Count, 1);
+            Assert.LessOrEqual(sfxTimes.Count, merge.MergeCount);
+            for (int i = 1; i < sfxTimes.Count; i++)
+            {
+                Assert.GreaterOrEqual(sfxTimes[i] - sfxTimes[i - 1], effects.SfxMinInterval - 0.0001f, "Hai tiếng không được chồng nhau.");
+            }
+
+            yield return Seconds(1f);
+            Assert.AreEqual(0, effects.ActiveCount);
+            Assert.AreEqual(0, CountFx("MergeFx") + CountFx("BurstFx"), "Hiệu ứng phải tự hủy hết.");
+            Assert.AreEqual(0, ui.ActivePopupCount);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T04b_VisualPop_AnimatesBodyNotPhysicsRoot()
+        {
+            SpawnOnFloor(-0.21f, 1);
+            SpawnOnFloor(0.21f, 1);
+            yield return WaitUntil(() => merge.MergeCount == 1, 1f);
+            Monster created = merge.ActiveMonsters[0];
+            float diameter = created.Radius * 2f;
+            float maxVisual = 1f;
+            float maxRoot = 0f;
+
+            for (float end = Time.time + 0.4f; Time.time < end;)
+            {
+                maxVisual = Mathf.Max(maxVisual, created.VisualPopScale);
+                maxRoot = Mathf.Max(maxRoot, created.transform.localScale.x);
+                yield return null;
+            }
+
+            Assert.Greater(maxVisual, 1.05f, "Phần hình phải nảy lên.");
+            Assert.LessOrEqual(maxRoot, diameter + 0.0001f, "Gốc vật lý không được phình theo pop.");
+            Assert.AreEqual(1f, created.VisualPopScale, 0.0001f, "Pop phải về đúng kích thước.");
+            Assert.AreEqual(diameter, created.transform.localScale.x, 0.0001f);
+            Assert.AreEqual(0.5f, created.GetComponent<CircleCollider2D>().radius, 0.0001f);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T04c_JuiceDisabled_NoRingNoSfxNoPop_PopupKept()
+        {
+            var effects = Object.FindAnyObjectByType<MergeEffects>();
+            var ui = Object.FindAnyObjectByType<GameUI>();
+            effects.JuiceEnabled = false;
+            int sfx = 0;
+            effects.SfxPlayed += () => sfx++;
+            int maxRings = 0;
+            int maxPopups = 0;
+            float maxVisual = 1f;
+
+            SpawnOnFloor(-0.21f, 1);
+            SpawnOnFloor(0.21f, 1);
+            for (float end = Time.time + 0.5f; Time.time < end;)
+            {
+                maxRings = Mathf.Max(maxRings, CountFx("MergeFx"));
+                maxPopups = Mathf.Max(maxPopups, ui.ActivePopupCount);
+                if (merge.ActiveMonsters.Count == 1)
+                {
+                    maxVisual = Mathf.Max(maxVisual, merge.ActiveMonsters[0].VisualPopScale);
+                }
+
+                yield return null;
+            }
+
+            Assert.AreEqual(1, merge.MergeCount);
+            Assert.AreEqual(0, maxRings);
+            Assert.AreEqual(0, sfx);
+            Assert.AreEqual(1f, maxVisual, 0.0001f);
+            Assert.GreaterOrEqual(maxPopups, 1, "Popup điểm của v0.1 vẫn phải còn.");
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T04d_ComboFromThree_IsEmphasized_OnlyWithJuice()
+        {
+            var ui = Object.FindAnyObjectByType<GameUI>();
+            Text comboText = Object.FindObjectsByType<Text>().First(t => t.name == "ComboText");
+
+            for (int i = 0; i < 3; i++)
+            {
+                float x = -1.4f + i * 1.4f;
+                SpawnOnFloor(x - 0.21f, 1);
+                SpawnOnFloor(x + 0.21f, 1);
+            }
+
+            yield return WaitUntil(() => merge.Combo >= 3, 1f);
+            yield return null;
+            Assert.GreaterOrEqual(merge.Combo, 3);
+            Assert.AreEqual(ui.ComboEmphasisColor, comboText.color);
+            Assert.Greater(comboText.rectTransform.localScale.x, 1.01f, "Chữ combo phải phóng to.");
+
+            game.Restart();
+            yield return null;
+            yield return null;
+            Resolve();
+            Object.FindAnyObjectByType<MergeEffects>().JuiceEnabled = false;
+            ui = Object.FindAnyObjectByType<GameUI>();
+            comboText = Object.FindObjectsByType<Text>().First(t => t.name == "ComboText");
+
+            for (int i = 0; i < 3; i++)
+            {
+                float x = -1.4f + i * 1.4f;
+                SpawnOnFloor(x - 0.21f, 1);
+                SpawnOnFloor(x + 0.21f, 1);
+            }
+
+            yield return WaitUntil(() => merge.Combo >= 3, 1f);
+            yield return null;
+            Assert.GreaterOrEqual(merge.Combo, 3);
+            Assert.AreNotEqual(ui.ComboEmphasisColor, comboText.color);
+            Assert.AreEqual(1f, comboText.rectTransform.localScale.x, 0.0001f);
+        }
+
+        private static float UprightError(Transform transform) => Mathf.Abs(Mathf.DeltaAngle(transform.eulerAngles.z, 0f));
+
+        [UnityTest]
+        public IEnumerator V02_T03a_RotatedMonster_LabelStaysUpright()
+        {
+            Monster monster = SpawnOnFloor(0f, 3);
+            yield return FixedSteps(2);
+
+            foreach (float angle in new[] { 90f, 180f, 270f })
+            {
+                monster.Body.rotation = angle;
+                yield return FixedSteps(2);
+                yield return new WaitForEndOfFrame();
+
+                Assert.AreEqual(angle, monster.Body.rotation, 1f, "Thân phải giữ góc xoay vật lý.");
+                Assert.Less(UprightError(monster.LabelTransform), 0.5f, $"Nhãn phải đứng thẳng khi thân xoay {angle} độ.");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T03b_SpinningMonster_KeepsSpinning_LabelUpright()
+        {
+            Monster monster = SpawnOnFloor(0f, 1);
+            yield return FixedSteps(2);
+            monster.Body.angularVelocity = 360f;
+            float startRotation = monster.Body.rotation;
+
+            // Đo ở cuối frame: đó là thứ người chơi thấy. Ngay sau yield null, LateUpdate chưa chạy
+            // nên nhãn còn lệch đúng góc quái quay trong frame đó.
+            var endOfFrame = new WaitForEndOfFrame();
+            for (int i = 0; i < 10; i++)
+            {
+                yield return endOfFrame;
+                Assert.Less(UprightError(monster.LabelTransform), 0.5f, "Nhãn phải đứng thẳng ở mọi frame.");
+            }
+
+            Assert.Greater(Mathf.Abs(monster.Body.rotation - startRotation), 5f, "Giữ nhãn đứng không được cản quái lăn.");
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T03c_MergedMonster_LabelUprightAndNoLeftoverLabels()
+        {
+            Monster left = SpawnOnFloor(-0.21f, 1);
+            Monster right = SpawnOnFloor(0.21f, 1);
+            left.Body.angularVelocity = 400f;
+            right.Body.angularVelocity = -400f;
+            yield return Seconds(0.5f);
+
+            Assert.AreEqual(1, CountTier(2));
+            Assert.Less(UprightError(merge.ActiveMonsters[0].LabelTransform), 0.5f, "Quái mới sinh phải có nhãn đứng ngay.");
+
+            game.EndGame();
+            game.Restart();
+            yield return null;
+            yield return null;
+            Resolve();
+
+            Assert.AreEqual(1, Object.FindObjectsByType<TextMesh>().Length, "Sau Restart chỉ còn nhãn của preview.");
+        }
+
         [UnityTest]
         public IEnumerator T07_BriefCrossingOfDangerLine_NoGameOver()
         {

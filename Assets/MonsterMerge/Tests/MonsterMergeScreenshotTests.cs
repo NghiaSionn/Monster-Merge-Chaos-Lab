@@ -92,6 +92,18 @@ namespace MonsterMerge.Tests
             Assert.AreEqual(1920, Screen.height, "Game View chưa đổi độ phân giải.");
             yield return Capture("mm_playing_9x16.jpg");
 
+            // TASK-03: xoay mỗi quái một góc khác nhau, số phải vẫn đứng thẳng.
+            float angle = 70f;
+            foreach (Monster monster in Object.FindAnyObjectByType<MergeManager>().ActiveMonsters)
+            {
+                monster.Body.rotation = angle;
+                angle += 55f;
+            }
+
+            yield return new WaitForFixedUpdate();
+            yield return new WaitForFixedUpdate();
+            yield return Capture("mm_labels_rotated_9x16.jpg");
+
             // TASK-02: đầy năng lượng nhưng chỉ có 1 Magni, rồi thêm Magni thứ hai trong tầm.
             var ability = Object.FindAnyObjectByType<AbilityManager>();
             var stageMerge = Object.FindAnyObjectByType<MergeManager>();
@@ -131,6 +143,20 @@ namespace MonsterMerge.Tests
 
             Assert.AreEqual(1, merge.BurstCount, "Burst phải xảy ra để chụp hiệu ứng.");
             yield return Capture("mm_overload_burst_9x16.jpg");
+
+            // TASK-04: chụp ngay khi cặp Goo hợp nhất để thấy vòng sáng và pop phần hình.
+            int mergesBefore = merge.MergeCount;
+            float gooY = tank.FloorY + merge.GetTier(3).radius + 0.01f;
+            merge.Spawn(merge.GetTier(3), new Vector2(-0.36f, gooY));
+            merge.Spawn(merge.GetTier(3), new Vector2(0.36f, gooY));
+            for (float waited = 0f; merge.MergeCount == mergesBefore && waited < 1f; waited += Time.deltaTime)
+            {
+                yield return null;
+            }
+
+            Assert.Greater(merge.MergeCount, mergesBefore, "Cặp Goo phải hợp nhất để chụp hiệu ứng.");
+            yield return new WaitForSeconds(0.05f);
+            yield return Capture("mm_merge_ring_9x16.jpg");
 
             PlayerPrefs.SetInt(GameUI.HintSeenKey, savedHint);
             PlayerPrefs.SetInt(GameManager.BestScoreKey, savedBest);

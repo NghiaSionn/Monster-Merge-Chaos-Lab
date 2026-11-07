@@ -22,6 +22,7 @@ namespace MonsterMerge.EditorTools
         private const string PrefabPath = Root + "/Prefabs/Monster.prefab";
         private const string CirclePath = Root + "/Art/Circle.png";
         private const string SquarePath = Root + "/Art/Square.png";
+        private const string RingPath = Root + "/Art/Ring.png";
         private const string UnlitMaterialPath = "Packages/com.unity.render-pipelines.universal/Runtime/Materials/Sprite-Unlit-Default.mat";
 
         private const float WallThickness = 0.2f;
@@ -108,6 +109,7 @@ namespace MonsterMerge.EditorTools
 
             Sprite circle = EnsureSprite(CirclePath, CreateCircleTexture(256), 256);
             Sprite square = EnsureSprite(SquarePath, CreateSquareTexture(4), 4);
+            Sprite ring = EnsureSprite(RingPath, CreateRingTexture(256, 0.1f), 256);
             Material unlit = AssetDatabase.LoadAssetAtPath<Material>(UnlitMaterialPath);
             if (unlit == null)
             {
@@ -118,7 +120,7 @@ namespace MonsterMerge.EditorTools
             MonsterData[] tiers = EnsureTierData();
             Monster prefab = BuildMonsterPrefab(circle, unlit);
 
-            BuildScene(scene, tiers, prefab, circle, square, unlit);
+            BuildScene(scene, tiers, prefab, circle, square, ring, unlit);
             AddSceneToBuildSettings();
 
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
@@ -155,6 +157,28 @@ namespace MonsterMerge.EditorTools
                     // Viền tối nhẹ để hai quái cùng màu vẫn tách biệt khi nằm sát nhau.
                     float shade = distance > radius - size * 0.035f ? 0.72f : 1f;
                     texture.SetPixel(x, y, new Color(shade, shade, shade, alpha));
+                }
+            }
+
+            texture.Apply();
+            return texture;
+        }
+
+        /// <summary>Vòng rỗng đường kính 1 unit, viền dày bằng <paramref name="thickness"/> lần đường kính.</summary>
+        private static Texture2D CreateRingTexture(int size, float thickness)
+        {
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            float center = (size - 1) * 0.5f;
+            float outer = size * 0.5f - 1f;
+            float inner = outer - size * thickness;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float distance = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                    float alpha = Mathf.Clamp01(outer - distance + 0.5f) * Mathf.Clamp01(distance - inner + 0.5f);
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
                 }
             }
 
@@ -277,7 +301,7 @@ namespace MonsterMerge.EditorTools
             return saved.GetComponent<Monster>();
         }
 
-        private static void BuildScene(Scene scene, MonsterData[] tiers, Monster prefab, Sprite circle, Sprite square, Material unlit)
+        private static void BuildScene(Scene scene, MonsterData[] tiers, Monster prefab, Sprite circle, Sprite square, Sprite ring, Material unlit)
         {
             Camera camera = BuildCamera();
             BuildEventSystem();
@@ -331,10 +355,10 @@ namespace MonsterMerge.EditorTools
 
             Wire(effects,
                 ("merge", merge),
-                ("ringSprite", circle),
+                ("ringSprite", ring),
                 ("material", unlit));
 
-            BuildUi(game, merge, drop, ability, camera, circle);
+            BuildUi(game, merge, drop, ability, effects, camera, circle);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
         }
@@ -426,7 +450,8 @@ namespace MonsterMerge.EditorTools
             return renderer;
         }
 
-        private static void BuildUi(GameManager game, MergeManager merge, DropController drop, AbilityManager ability, Camera camera, Sprite circle)
+        private static void BuildUi(GameManager game, MergeManager merge, DropController drop, AbilityManager ability,
+            MergeEffects effects, Camera camera, Sprite circle)
         {
             Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
@@ -520,6 +545,7 @@ namespace MonsterMerge.EditorTools
                 ("drop", drop),
                 ("ability", ability),
                 ("worldCamera", camera),
+                ("effects", effects),
                 ("scoreText", score),
                 ("bestText", best),
                 ("nextIcon", nextIcon),
