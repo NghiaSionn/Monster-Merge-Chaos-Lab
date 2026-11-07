@@ -17,6 +17,8 @@ Nhãn: `AUTO-TEST PASS` (test tự động chạy thật), `MANUAL TEST PENDING`
 | 07/11/2026 | Baseline v0.1, commit `8d6199e` | 29 | 0 | 0 | 28 test và 1 test chụp màn hình |
 | 07/11/2026 | Sau TASK-01, chưa commit | 35 | 0 | 0 | 29 cũ không hồi quy, thêm 6 test mới; Console không có lỗi |
 | 07/11/2026 | Sau TASK-02, chưa commit | 40 | 0 | 0 | Thêm 5 test mới, điều chỉnh 5 test cũ (xem dưới); chạy lại sau khi dời ô thông báo, vẫn 40/40 |
+| 07/11/2026 | Sau TASK-03, chưa commit | 43 | 0 | 0 | Thêm 3 test; lần chạy đầu 42/1 do `T03b` đo sai thời điểm (xem dưới); Console không có lỗi |
+| 07/11/2026 | Sau TASK-04, chưa commit | 47 | 0 | 0 | Thêm 4 test; scene dựng lại; Console không có lỗi |
 
 ## Test mới của TASK-01
 
@@ -55,6 +57,29 @@ TASK-02 yêu cầu không để UI trông như dùng được khi chưa có mụ
 
 Mục đích của từng test không đổi: không mất năng lượng sai, bấm UI không thả quái, hủy chọn được, Game Over chặn mọi thao tác.
 
+## Test mới của TASK-03
+
+| Test | Kịch bản | Kết quả | Khi tắt dòng giữ nhãn đứng |
+|---|---|---|---|
+| `V02_T03a_RotatedMonster_LabelStaysUpright` | Thân xoay 90°, 180°, 270°: nhãn lệch dưới 0,5° | AUTO-TEST PASS | Fail: lệch 90° |
+| `V02_T03b_SpinningMonster_KeepsSpinning_LabelUpright` | Quái quay 360°/giây: nhãn đứng ở mọi frame, quái vẫn quay | AUTO-TEST PASS | Fail: lệch 1,8° |
+| `V02_T03c_MergedMonster_LabelUprightAndNoLeftoverLabels` | Sau merge nhãn đứng; sau Restart chỉ còn nhãn của preview | AUTO-TEST PASS | Vẫn pass |
+
+Đã chạy lại 3 test này khi tạm tắt dòng giữ nhãn đứng để chắc test bắt được lỗi, rồi khôi phục code. `T03c` vẫn pass vì quái mới sinh luôn bắt đầu ở góc 0°, nên phần kiểm tra nhãn sau merge không phân biệt được; giá trị thật của test này là phần kiểm tra không còn nhãn sót sau Restart.
+
+`T03b` lần đầu fail với code đúng, lệch 1,4°. Nguyên nhân là test đo ngay sau `yield return null`, trước khi `LateUpdate` chạy. Đã đổi sang đo ở cuối frame (`WaitForEndOfFrame`), giữ nguyên ngưỡng 0,5°.
+
+## Test mới của TASK-04
+
+| Test | Kịch bản | Kết quả |
+|---|---|---|
+| `V02_T04a_TwentyFourMerges_FxPopupsAndSfxStayBounded` | 24 cặp Blip hợp nhất trong 2 đợt. Thực tế 40 merge (có chain), tối đa 8 vòng sáng và 6 popup cùng lúc (đúng giới hạn), 5 tiếng không chồng nhau; sau 1 giây không còn hiệu ứng | AUTO-TEST PASS |
+| `V02_T04b_VisualPop_AnimatesBodyNotPhysicsRoot` | Phần hình phình trên 5%, gốc vật lý không vượt đường kính, collider giữ bán kính 0,5, kết thúc về đúng kích thước | AUTO-TEST PASS |
+| `V02_T04c_JuiceDisabled_NoRingNoSfxNoPop_PopupKept` | Tắt juice: không vòng sáng, không tiếng, không pop; popup điểm của v0.1 vẫn còn | AUTO-TEST PASS |
+| `V02_T04d_ComboFromThree_IsEmphasized_OnlyWithJuice` | Combo x3: chữ đổi màu nhấn và phóng to; tắt juice thì không | AUTO-TEST PASS |
+
+Số tiếng ít hơn nhiều so với số merge vì nhiều merge rơi vào cùng frame và tiếng sau bị bỏ do khoảng cách tối thiểu 0,05 giây. Test chỉ chứng minh tiếng có phát và không chồng nhau; **chưa ai nghe thử** âm thanh.
+
 ## Soak (bot ngẫu nhiên, chỉ ClassicCap)
 
 | Ván | Game-time | Thả | Merge | Burst | Điểm |
@@ -69,7 +94,12 @@ Số liệu nam châm từ soak sau TASK-02 (bot không dùng kỹ năng): năng
 
 ## Bằng chứng hình ảnh
 
-Lưu tại `production/qa/evidence/prototype-v0.2/`: `mm_playing_9x16.jpg`, `mm_gameover_9x16.jpg`, `mm_playing_9x20.jpg`, `mm_overload_burst_9x16.jpg`, `mm_magni_can_2_9x16.jpg`, `mm_magni_ready_9x16.jpg`.
+Lưu tại `production/qa/evidence/prototype-v0.2/`: `mm_playing_9x16.jpg`, `mm_gameover_9x16.jpg`, `mm_playing_9x20.jpg`, `mm_overload_burst_9x16.jpg`, `mm_magni_can_2_9x16.jpg`, `mm_magni_ready_9x16.jpg`, `mm_labels_rotated_9x16.jpg`, `mm_merge_ring_9x16.jpg`.
+
+Quan sát từ ảnh TASK-04:
+- Vòng nổ burst giờ là vòng rỗng vàng nhạt, không còn nhầm với Crag.
+- Merge cặp Goo: vòng tím nhạt vẽ sau quái nên không che số; quái mới đang sáng và nảy. Vòng vàng ngoài cùng là vòng burst trước đó chưa tắt hẳn.
+- Popup "+60" không thấy trong ảnh, cùng hạn chế của cách chụp như popup "+300".
 
 Quan sát từ ảnh TASK-02:
 - Chỉ có 1 Magni: nút mờ, ghi "Cần 2 Magni".

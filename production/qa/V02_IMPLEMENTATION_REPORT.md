@@ -86,3 +86,66 @@ Cập nhật theo từng task. Yêu cầu gốc: `production/monster-merge-tasks
 
 - Chưa thử bằng chuột thật hay cảm ứng.
 - Chữ trên nút và thông báo vẫn viết thẳng trong code, chưa có hệ thống bản địa hóa. Prototype chỉ có tiếng Việt.
+
+## TASK-03: Nhãn số luôn đứng thẳng — IMPLEMENTED, AUTO-TEST PASS
+
+### File code
+
+| File | Thay đổi | Lý do |
+|---|---|---|
+| `Scripts/Monsters/Monster.cs` | Thêm `LateUpdate` đặt góc xoay của nhãn về 0 mỗi frame; thêm `LabelTransform` cho test | Thân vẫn xoay theo Rigidbody2D, chỉ nhãn được giữ đứng |
+| `Tests/MonsterMergePlayTests.cs` | Thêm 3 test `V02_T03*` | Xem `V02_TEST_REPORT.md` |
+| `Tests/MonsterMergeScreenshotTests.cs` | Thêm ảnh `mm_labels_rotated_9x16.jpg` | Bằng chứng hình ảnh |
+
+### Quyết định
+
+- Dùng nhãn con có sẵn, không tạo UI overlay, đúng gợi ý của task.
+- Chạy trong `LateUpdate` vì Rigidbody2D (Interpolate) cập nhật transform trước `Update`; đặt góc ở đây là bước cuối trước khi vẽ.
+- Nhãn không có collider, nên đổi góc nhãn không tạo lực. `T03b` xác nhận quái vẫn quay bình thường.
+- Không đổi prefab hay scene, nên không cần chạy builder.
+
+### Chưa xong (TASK-03)
+
+- Font trên Android: MANUAL TEST PENDING, chưa build APK.
+- Thân quái là hình tròn đều nên ảnh chụp không cho thấy thân đã xoay; bằng chứng thân xoay nằm ở `T03a`.
+
+## TASK-04: Juice hợp nhất tối thiểu — IMPLEMENTED, AUTO-TEST PASS
+
+### File code
+
+| File | Thay đổi | Lý do |
+|---|---|---|
+| `Scripts/Gameplay/MergeEffects.cs` | Viết lại: công tắc `JuiceEnabled`; vòng sáng merge; tiếng bíp tự sinh với 4 nguồn phát và khoảng cách tối thiểu; vòng burst đổi sang vàng nhạt, vẽ sau quái | Phản hồi hình và tiếng, có giới hạn |
+| `Scripts/Monsters/Monster.cs` | Thêm `PlayVisualPop` và `VisualPopScale`: nảy thân và số, không đụng transform gốc | Task yêu cầu animate visual child, không animate physics root |
+| `Scripts/UI/GameUI.cs` | Giới hạn 6 popup cùng lúc; combo từ x3 đổi màu và phóng to khi bật juice | Không phủ kín bể khi merge dồn dập |
+| `Scripts/Editor/MonsterMergeSceneBuilder.cs` | Sinh `Art/Ring.png` (vòng rỗng); nối `GameUI.effects` | Thay đổi scene đi qua builder |
+| `Tests/MonsterMergePlayTests.cs` | Thêm 4 test `V02_T04*` | Xem `V02_TEST_REPORT.md` |
+| `Tests/MonsterMergeScreenshotTests.cs` | Thêm ảnh `mm_merge_ring_9x16.jpg` | Bằng chứng hình ảnh |
+
+### Inspector
+
+`Managers` > `MergeEffects`:
+
+| Nhóm | Trường chính | Mặc định |
+|---|---|---|
+| Juice | `Juice Enabled` | bật |
+| Pop phần hình | `Visual Pop Duration`, `Visual Pop Overshoot` | 0,16 giây; 18% |
+| Vòng sáng merge | thời gian, kích thước đầu/cuối, độ pha trắng, độ trong | 0,25 giây; 1,0 đến 1,8 lần đường kính |
+| Burst | màu, thời gian, kích thước | vàng nhạt; 0,35 giây |
+| Giới hạn | `Max Active`, `Sorting Order` | 8; 3 (sau quái) |
+| Âm thanh | `Merge Clip`, `Sfx Volume`, `Sfx Muted`, `Sfx Min Interval`, `Sfx Voices`, cao độ | trống (dùng bíp tự sinh); 0,5; tắt; 0,05 giây; 4 |
+
+`Canvas` > `GameUI`: `Max Popups` (6), nhóm Combo (từ x3, màu, độ phóng, thời gian).
+
+### Quyết định
+
+- **Tắt `JuiceEnabled` thì quay về cảm giác v0.1:** vẫn giữ flash, popup điểm và việc gốc quái lớn dần 70% lên 100%. Tắt pop phần hình, vòng sáng merge, âm thanh, nhấn combo.
+- **Vòng nổ burst luôn bật** vì là phản hồi chức năng của TASK-01. Tiếng của burst thì theo công tắc juice.
+- **Giữ việc gốc quái lớn dần** để collider không đẩy văng quái bên cạnh. Pop mới chỉ chạy trên phần hình.
+- **Âm thanh:** project chưa có file âm thanh, nên dùng tiếng bíp sinh bằng code: sóng sin 660 Hz, 0,09 giây. Gắn clip vào `Merge Clip` để thay. Cấp càng cao cao độ càng thấp; burst thấp nhất.
+- Chưa có nút bật/tắt âm trong game; chỉnh trong Inspector.
+
+### Chưa xong (TASK-04)
+
+- Chưa ai nghe thử âm thanh; chưa thử trên Android.
+- Khi chạm giới hạn, merge mới sẽ không có vòng sáng hoặc popup. Đây là chủ ý, nhưng cần người chơi đánh giá có bị thiếu phản hồi không.

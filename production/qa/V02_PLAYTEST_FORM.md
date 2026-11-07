@@ -51,4 +51,4 @@ Phiếu mẫu chưa có các mục dưới đây, nên được thêm vào để
 3. Đặt `Max Tier Mode` thành `ClassicCap` (A) hoặc `OverloadBurst` (B), rồi bấm Play. Không đổi khi đang chơi: bấm Chơi lại sẽ quay về giá trị trong Inspector.
 4. Cuối mỗi ván, Console ghi `[MonsterMerge] Hết ván: mode=..., điểm=..., thời gian=..., merge=..., burst=...`, có thể chép vào bảng trên.
 
-`JuiceEnabled` chưa có, sẽ thêm ở TASK-04. Chưa nên điền phiếu trước khi TASK-02 đến TASK-05 xong, vì các ván phải chơi trên cùng một bản build.
+**Bật/tắt juice:** `Managers` > `MergeEffects` > `Juice Enabled`. Tắt thì quay về cảm giác v0.1 (vẫn có flash và popup điểm); bật thì có thêm pop, vòng sáng, tiếng bíp và nhấn combo. Đổi trước khi bấm Play. Chưa nên điền phiếu trước khi TASK-02 đến TASK-05 xong, vì các ván phải chơi trên cùng một bản build.
