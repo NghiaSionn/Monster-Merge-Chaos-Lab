@@ -27,6 +27,7 @@ namespace MonsterMerge
         private float maxSpeed;
         private float popElapsed = PopDuration;
         private float flash;
+        private float highlight;
 
         public MonsterData Data { get; private set; }
         public int Tier => Data != null ? Data.tier : 0;
@@ -74,6 +75,29 @@ namespace MonsterMerge
             flash = 1f;
         }
 
+        /// <summary>Mức sáng ổn định đang áp dụng (0 = bình thường).</summary>
+        public float HighlightAmount => highlight;
+
+        /// <summary>Làm sáng ổn định, không nhấp nháy. Gọi lặp lại cùng giá trị không tốn gì.</summary>
+        public void SetHighlight(float amount)
+        {
+            if (Mathf.Approximately(amount, highlight))
+            {
+                return;
+            }
+
+            highlight = amount;
+            ApplyColor();
+        }
+
+        private void ApplyColor()
+        {
+            if (Data != null)
+            {
+                body.color = Color.Lerp(Data.color, Color.white, Mathf.Max(flash, highlight));
+            }
+        }
+
         private static PhysicsMaterial2D GetMaterial(MonsterData data)
         {
             if (!Materials.TryGetValue(data, out PhysicsMaterial2D material) || material == null)
@@ -103,7 +127,7 @@ namespace MonsterMerge
             }
 
             flash = Mathf.Max(0f, flash - Time.deltaTime * FlashFadePerSecond);
-            body.color = Color.Lerp(Data.color, Color.white, flash);
+            ApplyColor();
         }
 
         private void FixedUpdate()

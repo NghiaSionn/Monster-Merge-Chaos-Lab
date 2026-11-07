@@ -38,7 +38,13 @@ namespace MonsterMerge
         [SerializeField] private Button restartButton;
 
         [SerializeField, Min(0.1f)] private float messageSeconds = 1.6f;
+        [SerializeField, Min(0.1f)] private float tipSeconds = 3.5f;
         [SerializeField, Min(0.1f)] private float comboSeconds = 1.5f;
+
+        [Header("Nút nam châm")]
+        [SerializeField] private Color magnetReadyColor = new(0.56f, 0.36f, 0.95f);
+        [Tooltip("Đầy năng lượng nhưng chưa có mục tiêu: nút vẫn bấm được để xem lý do, nhưng không sáng.")]
+        [SerializeField] private Color magnetWaitingColor = new(0.3f, 0.26f, 0.42f);
 
         private Coroutine messageRoutine;
         private Coroutine comboRoutine;
@@ -58,6 +64,7 @@ namespace MonsterMerge
             drop.Dropped += HideHint;
             ability.StateChanged += RefreshEnergy;
             ability.Feedback += ShowMessage;
+            ability.TipRequested += ShowTip;
         }
 
         private void OnDisable()
@@ -69,6 +76,7 @@ namespace MonsterMerge
             drop.Dropped -= HideHint;
             ability.StateChanged -= RefreshEnergy;
             ability.Feedback -= ShowMessage;
+            ability.TipRequested -= ShowTip;
         }
 
         private void Start()
@@ -106,8 +114,22 @@ namespace MonsterMerge
             energyFill.anchorMax = new Vector2(ratio, 1f);
             energyText.text = $"Năng lượng {Mathf.RoundToInt(ratio * 100f)}%";
 
-            magnetButton.interactable = ability.CanActivate || ability.IsTargeting;
-            magnetButtonText.text = ability.IsTargeting ? "Hủy" : "Kích hoạt Nam châm";
+            bool targeting = ability.IsTargeting;
+            magnetButton.interactable = ability.CanActivate || targeting;
+            magnetButton.image.color = targeting || ability.IsReady ? magnetReadyColor : magnetWaitingColor;
+
+            if (targeting)
+            {
+                magnetButtonText.text = "Hủy";
+            }
+            else if (ability.CanActivate && !ability.IsReady)
+            {
+                magnetButtonText.text = AbilityManager.ReasonText(ability.Availability);
+            }
+            else
+            {
+                magnetButtonText.text = "Kích hoạt Nam châm";
+            }
         }
 
         private void OnMerged(MergeResult result)
@@ -128,14 +150,18 @@ namespace MonsterMerge
             }
         }
 
-        private void ShowMessage(string message)
+        private void ShowMessage(string message) => ShowMessageFor(message, messageSeconds);
+
+        private void ShowTip(string message) => ShowMessageFor(message, tipSeconds);
+
+        private void ShowMessageFor(string message, float seconds)
         {
             if (messageRoutine != null)
             {
                 StopCoroutine(messageRoutine);
             }
 
-            messageRoutine = StartCoroutine(ShowTimed(messageText, message, messageSeconds));
+            messageRoutine = StartCoroutine(ShowTimed(messageText, message, seconds));
         }
 
         private static IEnumerator ShowTimed(Text target, string value, float seconds)

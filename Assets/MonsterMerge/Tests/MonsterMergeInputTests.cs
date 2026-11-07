@@ -28,12 +28,14 @@ namespace MonsterMerge.Tests
         private Button magnetButton;
         private int savedBest;
         private int savedHint;
+        private int savedMagnetTip;
 
         [UnitySetUp]
         public IEnumerator SetUp()
         {
             savedBest = PlayerPrefs.GetInt(GameManager.BestScoreKey, 0);
             savedHint = PlayerPrefs.GetInt(GameUI.HintSeenKey, 0);
+            savedMagnetTip = PlayerPrefs.GetInt(AbilityManager.MagnetTipSeenKey, 0);
 
             // Phải chạy trước khi nạp scene để UI module bật action trên hệ input đã cô lập.
             input.Setup();
@@ -60,6 +62,7 @@ namespace MonsterMerge.Tests
 
             PlayerPrefs.SetInt(GameManager.BestScoreKey, savedBest);
             PlayerPrefs.SetInt(GameUI.HintSeenKey, savedHint);
+            PlayerPrefs.SetInt(AbilityManager.MagnetTipSeenKey, savedMagnetTip);
             PlayerPrefs.Save();
         }
 
@@ -144,6 +147,12 @@ namespace MonsterMerge.Tests
         [UnityTest]
         public IEnumerator T10_ClickOnButton_FiresButton_DoesNotDrop()
         {
+            // v0.2 TASK-02: nút chỉ vào chế độ chọn khi có cặp Magni trong tầm.
+            merge.Spawn(merge.GetTier(4), new Vector2(-1f, tank.FloorY + 0.48f));
+            merge.Spawn(merge.GetTier(4), new Vector2(1f, tank.FloorY + 0.48f));
+            yield return new WaitForSeconds(0.3f);
+            int monstersBefore = merge.ActiveMonsters.Count;
+
             ability.AddEnergy(100);
             yield return null;
 
@@ -152,7 +161,7 @@ namespace MonsterMerge.Tests
             Assert.IsFalse(drop.IsAiming, "Nhấn lên UI không được bắt đầu ngắm.");
             yield return Release();
 
-            Assert.AreEqual(0, merge.ActiveMonsters.Count, "Bấm UI không được thả quái.");
+            Assert.AreEqual(monstersBefore, merge.ActiveMonsters.Count, "Bấm UI không được thả quái.");
             Assert.IsTrue(ability.IsTargeting, "Nút thật phải nhận click qua EventSystem.");
         }
 

@@ -293,6 +293,7 @@ namespace MonsterMerge.EditorTools
             var ability = managers.AddComponent<AbilityManager>();
             var drop = managers.AddComponent<DropController>();
             var danger = managers.AddComponent<DangerZone>();
+            var effects = managers.AddComponent<MergeEffects>();
 
             var preview = new GameObject("Preview");
             (SpriteRenderer previewBody, TextMesh previewLabel) = CreateVisual(preview.transform, circle, unlit, 2);
@@ -327,6 +328,11 @@ namespace MonsterMerge.EditorTools
                 ("merge", merge),
                 ("tank", tank),
                 ("lineRenderer", dangerLine));
+
+            Wire(effects,
+                ("merge", merge),
+                ("ringSprite", circle),
+                ("material", unlit));
 
             BuildUi(game, merge, drop, ability, camera, circle);
 
@@ -461,8 +467,9 @@ namespace MonsterMerge.EditorTools
                 new Vector2(1f, 1f), new Vector2(-40f, -120f), new Vector2(400f, 70f), new Vector2(1f, 1f));
             combo.color = new Color(1f, 0.85f, 0.3f);
 
+            // Đặt ở dải trống giữa HUD và miệng bể; vị trí cũ dưới đáy bể làm chữ đè lên bể (v0.2 TASK-02).
             Text message = CreateText("MessageText", safeArea, font, string.Empty, 42, TextAnchor.MiddleCenter,
-                new Vector2(0.5f, 0f), new Vector2(0f, 262f), new Vector2(1000f, 64f), new Vector2(0.5f, 0f));
+                new Vector2(0.5f, 1f), new Vector2(0f, -195f), new Vector2(1000f, 120f), new Vector2(0.5f, 1f));
             message.color = new Color(1f, 0.9f, 0.55f);
 
             // Năng lượng và nút kỹ năng ở dưới, ngoài vùng bể

@@ -16,6 +16,10 @@ namespace MonsterMerge
         public const string BestScoreKey = "MonsterMerge.BestScore";
 
         [SerializeField] private MergeManager merge;
+        [Tooltip("Ghi số liệu cuối ván ra Console để so sánh A/B.")]
+        [SerializeField] private bool logRoundStats = true;
+
+        private float roundStartTime;
 
         public GameState State { get; private set; } = GameState.Playing;
         public int Score { get; private set; }
@@ -27,6 +31,7 @@ namespace MonsterMerge
         private void Awake()
         {
             BestScore = PlayerPrefs.GetInt(BestScoreKey, 0);
+            roundStartTime = Time.time;
         }
 
         private void OnEnable()
@@ -60,6 +65,13 @@ namespace MonsterMerge
 
             State = GameState.GameOver;
             PlayerPrefs.Save();
+
+            if (logRoundStats)
+            {
+                Debug.Log($"[MonsterMerge] Hết ván: mode={merge.MaxTierMode}, điểm={Score}, " +
+                    $"thời gian={Time.time - roundStartTime:F0}s, merge={merge.MergeCount}, burst={merge.BurstCount}");
+            }
+
             GameEnded?.Invoke();
         }
 

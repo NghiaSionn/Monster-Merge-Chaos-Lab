@@ -26,6 +26,8 @@ Tài liệu thiết kế: `MONSTER_MERGE_GDD_v0.1.md`. Danh sách việc: `MONST
 
 ## Chỉnh cân bằng
 
+**Luật cấp cuối A/B (v0.2):** `Managers` > `MergeManager` > nhóm **Cấp cuối (A/B)** > `Max Tier Mode`. `ClassicCap` giữ hành vi v0.1; `OverloadBurst` cho cặp Crag biến mất và thưởng điểm. Mặc định là `ClassicCap`.
+
 - Từng cấp: `Assets/MonsterMerge/Data/MonsterTier1..5.asset`.
 - Trên object `Managers`:
   - `DropController`: tỷ lệ spawn, cooldown, random seed.
@@ -54,6 +56,8 @@ Tài liệu thiết kế: `MONSTER_MERGE_GDD_v0.1.md`. Danh sách việc: `MONST
 - Build Settings: thêm `GameScene` lên đầu. `SampleScene` vẫn ở vị trí thứ hai.
 
 ## Kết quả test
+
+**Kết quả v0.2 mới nhất:** xem `production/qa/V02_TEST_REPORT.md`. Bảng dưới đây là kết quả v0.1.
 
 Lần chạy cuối ngày 06/11/2026, Unity 6000.6.8f1, Game View 1080x1920: **29 pass, 0 fail** (28 test và 1 test chụp màn hình). Console không có lỗi nào từ game.
 

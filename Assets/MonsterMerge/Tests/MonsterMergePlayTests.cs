@@ -4,6 +4,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace MonsterMerge.Tests
 {
@@ -23,12 +24,14 @@ namespace MonsterMerge.Tests
         private TankBounds tank;
         private int savedBest;
         private int savedHint;
+        private int savedMagnetTip;
 
         [UnitySetUp]
         public IEnumerator SetUp()
         {
             savedBest = PlayerPrefs.GetInt(GameManager.BestScoreKey, 0);
             savedHint = PlayerPrefs.GetInt(GameUI.HintSeenKey, 0);
+            savedMagnetTip = PlayerPrefs.GetInt(AbilityManager.MagnetTipSeenKey, 0);
             PlayerPrefs.DeleteKey(GameManager.BestScoreKey);
             Time.timeScale = 1f;
 
@@ -44,6 +47,7 @@ namespace MonsterMerge.Tests
             Time.timeScale = 1f;
             PlayerPrefs.SetInt(GameManager.BestScoreKey, savedBest);
             PlayerPrefs.SetInt(GameUI.HintSeenKey, savedHint);
+            PlayerPrefs.SetInt(AbilityManager.MagnetTipSeenKey, savedMagnetTip);
             PlayerPrefs.Save();
         }
 
@@ -219,6 +223,139 @@ namespace MonsterMerge.Tests
             Assert.AreEqual(0, game.Score);
         }
 
+        private static int CountBurstFx() => Object.FindObjectsByType<SpriteRenderer>().Count(r => r.name == "BurstFx");
+
+        private static IEnumerator WaitUntil(System.Func<bool> condition, float timeout)
+        {
+            float end = Time.time + timeout;
+            while (!condition() && Time.time < end)
+            {
+                yield return null;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T01a_ClassicCap_IsDefault_CragsStay()
+        {
+            Assert.AreEqual(MaxTierMergeMode.ClassicCap, merge.MaxTierMode, "Mặc định phải giữ hành vi v0.1.");
+            int events = 0;
+            merge.Merged += _ => events++;
+
+            SpawnOnFloor(-0.59f, 5);
+            SpawnOnFloor(0.59f, 5);
+            yield return Seconds(0.7f);
+
+            Assert.AreEqual(2, CountTier(5));
+            Assert.AreEqual(0, events);
+            Assert.AreEqual(0, merge.BurstCount);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T01b_OverloadBurst_TwoCrags_RemovedAndRewardedOnce()
+        {
+            merge.MaxTierMode = MaxTierMergeMode.OverloadBurst;
+            int events = 0;
+            MergeResult last = default;
+            merge.Merged += result =>
+            {
+                events++;
+                last = result;
+            };
+
+            SpawnOnFloor(-0.59f, 5);
+            SpawnOnFloor(0.59f, 5);
+            yield return Seconds(0.7f);
+
+            Assert.AreEqual(0, merge.ActiveMonsters.Count);
+            Assert.AreEqual(0, Object.FindObjectsByType<Monster>().Length, "Không được còn object quái.");
+            Assert.AreEqual(1, events, "Chỉ một sự kiện cho một cặp.");
+            Assert.IsTrue(last.IsBurst);
+            Assert.IsNull(last.Created, "Burst không được sinh cấp mới.");
+            Assert.AreEqual(merge.BurstScore, game.Score);
+            Assert.AreEqual(25, ability.Energy, "Năng lượng cộng như một merge thường.");
+            Assert.AreEqual(1, merge.BurstCount);
+            Assert.AreEqual(1, merge.MergeCount);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T01c_OverloadBurst_ThreeCrags_OnlyOnePairBursts()
+        {
+            merge.MaxTierMode = MaxTierMergeMode.OverloadBurst;
+            int events = 0;
+            merge.Merged += _ => events++;
+
+            SpawnOnFloor(-1.18f, 5);
+            SpawnOnFloor(0f, 5);
+            SpawnOnFloor(1.18f, 5);
+            yield return Seconds(1f);
+
+            Assert.AreEqual(1, CountTier(5), "Một cặp biến mất, một Crag ở lại.");
+            Assert.AreEqual(1, events);
+            Assert.AreEqual(1, merge.BurstCount);
+            Assert.AreEqual(merge.BurstScore, game.Score);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T01d_BurstFx_AppearsThenCleansUp()
+        {
+            merge.MaxTierMode = MaxTierMergeMode.OverloadBurst;
+            var effects = Object.FindAnyObjectByType<MergeEffects>();
+
+            SpawnOnFloor(-0.59f, 5);
+            SpawnOnFloor(0.59f, 5);
+            yield return WaitUntil(() => merge.BurstCount == 1, 1f);
+
+            Assert.AreEqual(1, merge.BurstCount);
+            Assert.AreEqual(1, CountBurstFx(), "Burst phải có hiệu ứng.");
+
+            yield return Seconds(0.6f);
+            Assert.AreEqual(0, CountBurstFx(), "Hiệu ứng phải tự hủy.");
+            Assert.AreEqual(0, effects.ActiveCount);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T01e_BurstFx_CappedAtMaxActive()
+        {
+            var effects = Object.FindAnyObjectByType<MergeEffects>();
+            int played = 0;
+            for (int i = 0; i < 20; i++)
+            {
+                if (effects.PlayBurst(new Vector2(0f, tank.FloorY + 1f)))
+                {
+                    played++;
+                }
+            }
+
+            yield return null;
+            Assert.AreEqual(8, played, "Giới hạn mặc định là 8 hiệu ứng cùng lúc.");
+            Assert.AreEqual(8, CountBurstFx());
+
+            yield return Seconds(0.6f);
+            Assert.AreEqual(0, CountBurstFx());
+            Assert.IsTrue(effects.PlayBurst(Vector2.zero), "Hết hiệu ứng cũ thì phải phát được tiếp.");
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T01f_RestartRightAfterBurst_NoLeaks()
+        {
+            merge.MaxTierMode = MaxTierMergeMode.OverloadBurst;
+            SpawnOnFloor(-0.59f, 5);
+            SpawnOnFloor(0.59f, 5);
+            yield return WaitUntil(() => merge.BurstCount == 1, 1f);
+            Assert.AreEqual(1, merge.BurstCount);
+
+            game.Restart();
+            yield return null;
+            yield return null;
+            Resolve();
+
+            Assert.AreEqual(0, Object.FindObjectsByType<Monster>().Length);
+            Assert.AreEqual(0, CountBurstFx());
+            Assert.AreEqual(0, merge.BurstCount);
+            Assert.AreEqual(0, game.Score);
+            Assert.AreEqual(MaxTierMergeMode.ClassicCap, merge.MaxTierMode, "Restart quay về giá trị Inspector.");
+        }
+
         [UnityTest]
         public IEnumerator T07_BriefCrossingOfDangerLine_NoGameOver()
         {
@@ -309,17 +446,40 @@ namespace MonsterMerge.Tests
             Assert.IsTrue(ability.CanActivate);
         }
 
+        /// <summary>Hai Magni nằm sàn, cách nhau 2.0: trong tầm hút 2.5 nhưng chưa chạm nhau.</summary>
+        private IEnumerator SpawnMagniPair()
+        {
+            Monster left = SpawnOnFloor(-1f, 4);
+            SpawnOnFloor(1f, 4);
+            yield return Seconds(0.3f);
+            Assert.AreEqual(2, CountTier(4), "Cặp Magni phải còn nguyên để làm mục tiêu.");
+            pairLeft = left;
+        }
+
+        private Monster pairLeft;
+
+        private Button MagnetButton() => Object.FindObjectsByType<Button>().First(b => b.name == "MagnetButton");
+
+        private string MagnetLabel() => MagnetButton().GetComponentInChildren<Text>().text;
+
+        // v0.2 TASK-02: không có mục tiêu thì nút chỉ báo lý do, không vào chế độ chọn.
         [UnityTest]
         public IEnumerator T12_SingleMagni_KeepsEnergy()
         {
             Monster magni = SpawnOnFloor(0f, 4);
             ability.AddEnergy(100);
-            ability.ToggleTargeting();
             yield return Seconds(0.2f);
+            string feedback = null;
+            ability.Feedback += message => feedback = message;
 
+            ability.ToggleTargeting();
+
+            Assert.IsFalse(ability.IsTargeting, "Không có mục tiêu thì không vào chế độ chọn.");
+            Assert.AreEqual(MagnetAvailability.NeedTwoMagni, ability.Availability);
+            Assert.AreEqual("Cần 2 Magni", feedback);
             Assert.IsFalse(ability.TrySelectAt(magni.Position));
             Assert.AreEqual(100, ability.Energy);
-            Assert.IsTrue(ability.IsTargeting);
+            Assert.AreEqual(0f, magni.HighlightAmount, "Magni không có cặp không được sáng.");
         }
 
         [UnityTest]
@@ -328,11 +488,120 @@ namespace MonsterMerge.Tests
             Monster magni = SpawnOnFloor(-1.7f, 4);
             SpawnOnFloor(1.7f, 4);
             ability.AddEnergy(100);
-            ability.ToggleTargeting();
             yield return Seconds(0.2f);
+            string feedback = null;
+            ability.Feedback += message => feedback = message;
 
-            Assert.IsFalse(ability.TrySelectAt(magni.Position), "Khoảng cách 3.4 vượt tầm hút 2.5.");
+            ability.ToggleTargeting();
+
+            Assert.IsFalse(ability.IsTargeting);
+            Assert.AreEqual(MagnetAvailability.NoPairInRange, ability.Availability, "Khoảng cách 3.4 vượt tầm hút 2.5.");
+            Assert.AreEqual("Không có cặp trong tầm", feedback);
+            Assert.IsFalse(ability.TrySelectAt(magni.Position));
             Assert.AreEqual(100, ability.Energy);
+            Assert.AreEqual(0f, magni.HighlightAmount);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T02a_ValidPair_HighlightsOnlyWhenEnergyFull()
+        {
+            yield return SpawnMagniPair();
+            ability.AddEnergy(75);
+            yield return null;
+
+            Assert.AreEqual(MagnetAvailability.NotEnoughEnergy, ability.Availability);
+            Assert.AreEqual(0f, pairLeft.HighlightAmount, "Chưa đủ năng lượng thì không được trông như dùng được.");
+            Assert.IsFalse(MagnetButton().interactable);
+
+            ability.AddEnergy(25);
+            yield return null;
+
+            Assert.AreEqual(MagnetAvailability.Ready, ability.Availability);
+            Assert.IsTrue(ability.IsReady);
+            Assert.Greater(pairLeft.HighlightAmount, 0f);
+            Assert.IsTrue(MagnetButton().interactable);
+            Assert.AreEqual("Kích hoạt Nam châm", MagnetLabel());
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T02b_NoTarget_ButtonShowsReason()
+        {
+            SpawnOnFloor(0f, 4);
+            ability.AddEnergy(100);
+            yield return null;
+            Assert.AreEqual("Cần 2 Magni", MagnetLabel());
+            Assert.IsFalse(ability.IsReady);
+
+            SpawnOnFloor(-1.7f, 4);
+            SpawnOnFloor(1.7f, 4);
+            yield return Seconds(0.3f);
+            Assert.AreEqual(3, CountTier(4));
+            Assert.AreEqual(MagnetAvailability.Ready, ability.Availability, "Magni ở giữa cách hai bên 1.7, trong tầm.");
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T02c_Tip_ShownOnlyOnceAcrossRestart()
+        {
+            PlayerPrefs.DeleteKey(AbilityManager.MagnetTipSeenKey);
+            int tips = 0;
+            ability.TipRequested += _ => tips++;
+
+            yield return SpawnMagniPair();
+            ability.AddEnergy(100);
+            yield return null;
+            Assert.AreEqual(1, tips);
+
+            ability.ToggleTargeting();
+            ability.ToggleTargeting();
+            yield return null;
+            Assert.AreEqual(1, tips, "Vào rồi hủy chọn không được hiện lại hướng dẫn.");
+
+            game.Restart();
+            yield return null;
+            yield return null;
+            Resolve();
+            ability.TipRequested += _ => tips++;
+
+            yield return SpawnMagniPair();
+            ability.AddEnergy(100);
+            yield return null;
+            Assert.IsTrue(ability.IsReady);
+            Assert.AreEqual(1, tips, "Đã thấy thì không hiện lại ở ván sau.");
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T02d_Stats_CountActivationsSuccessesAndFailures()
+        {
+            yield return SpawnMagniPair();
+            ability.AddEnergy(100);
+            yield return null;
+
+            ability.ToggleTargeting();
+            Assert.IsFalse(ability.TrySelectAt(new Vector2(0f, tank.SpawnY)), "Chạm chỗ trống không được tính là hút.");
+            Assert.IsTrue(ability.TrySelectAt(pairLeft.Position));
+
+            Assert.AreEqual(1, ability.ActivateCount);
+            Assert.AreEqual(1, ability.FailedAttemptCount);
+            Assert.AreEqual(1, ability.SuccessCount);
+            Assert.GreaterOrEqual(ability.EnergyFullAt, 0f);
+            Assert.GreaterOrEqual(ability.FirstPairAt, 0f);
+            Assert.AreEqual(0, ability.Energy);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T02e_GameOver_ClearsHighlightAndButton()
+        {
+            yield return SpawnMagniPair();
+            ability.AddEnergy(100);
+            yield return null;
+            Assert.Greater(pairLeft.HighlightAmount, 0f);
+
+            game.EndGame();
+            yield return null;
+
+            Assert.AreEqual(0f, pairLeft.HighlightAmount);
+            Assert.IsFalse(MagnetButton().interactable);
+            Assert.IsFalse(ability.IsReady);
         }
 
         [UnityTest]
@@ -362,6 +631,7 @@ namespace MonsterMerge.Tests
         [UnityTest]
         public IEnumerator T14_CancelTargeting_KeepsEnergy_DropWorks()
         {
+            yield return SpawnMagniPair();
             ability.AddEnergy(100);
             ability.ToggleTargeting();
             Assert.IsTrue(ability.IsTargeting);
@@ -399,8 +669,10 @@ namespace MonsterMerge.Tests
         [UnityTest]
         public IEnumerator T16_GameOverDuringTargeting_BlocksEverything()
         {
+            yield return SpawnMagniPair();
             ability.AddEnergy(100);
             ability.ToggleTargeting();
+            Assert.IsTrue(ability.IsTargeting, "Phải đang chọn mục tiêu thì kịch bản mới có ý nghĩa.");
 
             game.EndGame();
             yield return null;

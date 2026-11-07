@@ -6,9 +6,23 @@ using UnityEngine.InputSystem;
 
 namespace MonsterMerge
 {
-    /// <summary>Năng lượng và kỹ năng Magnetic Pull. Không đổi luật hợp nhất: chỉ tạo lực hút.</summary>
+    /// <summary>Kỹ năng nam châm có dùng được không, và nếu không thì vì sao (TASK-02 v0.2).</summary>
+    public enum MagnetAvailability
+    {
+        NotEnoughEnergy,
+        NeedTwoMagni,
+        NoPairInRange,
+        Ready
+    }
+
+    /// <summary>
+    /// Năng lượng và kỹ năng Magnetic Pull (GDD mục 4). Không đổi luật hợp nhất: chỉ tạo lực hút.
+    /// Năng lượng chỉ bị trừ khi bắt đầu hút hợp lệ, kể cả khi hai Magni bị kẹt (quyết định 07/11/2026).
+    /// </summary>
     public sealed class AbilityManager : MonoBehaviour
     {
+        public const string MagnetTipSeenKey = "MonsterMerge.MagnetTipSeen";
+
         [SerializeField] private GameManager game;
         [SerializeField] private MergeManager merge;
         [SerializeField] private Camera worldCamera;
@@ -27,17 +41,68 @@ namespace MonsterMerge
         [Tooltip("Nới vùng chạm quanh Magni cho dễ bấm bằng ngón tay.")]
         [SerializeField, Min(0f)] private float tapTolerance = 0.15f;
 
+        [Header("Phản hồi")]
+        [Tooltip("Mức làm sáng các Magni có cặp trong tầm khi kỹ năng sẵn sàng. 0 = tắt.")]
+        [SerializeField, Range(0f, 1f)] private float magniHighlight = 0.4f;
+        [Tooltip("Ghi số liệu kỹ năng ra Console khi hết ván (chỉ trong Editor).")]
+        [SerializeField] private bool logStats = true;
+
+        private readonly List<Monster> magnis = new();
+        private MagnetAvailability availability;
         private bool trackingTap;
         private Coroutine pullRoutine;
+        private float roundStartTime;
 
         public int Energy { get; private set; }
         public int MaxEnergy => maxEnergy;
         public bool IsTargeting { get; private set; }
         public bool IsPulling => pullRoutine != null;
+
+        /// <summary>Đầy năng lượng và đang chơi: nút bấm được (để hiện lý do nếu chưa có mục tiêu).</summary>
         public bool CanActivate => game.State == GameState.Playing && Energy >= maxEnergy;
+
+        /// <summary>Đầy năng lượng và có ít nhất một cặp Magni trong tầm.</summary>
+        public bool IsReady => CanActivate && availability == MagnetAvailability.Ready;
+
+        public MagnetAvailability Availability => availability;
+
+        /// <summary>Số lần vào chế độ chọn mục tiêu.</summary>
+        public int ActivateCount { get; private set; }
+
+        /// <summary>Số lần hút hợp lệ.</summary>
+        public int SuccessCount { get; private set; }
+
+        /// <summary>Số lần chạm khi đang chọn mà không hút được.</summary>
+        public int FailedAttemptCount { get; private set; }
+
+        /// <summary>Giây kể từ đầu ván khi năng lượng đầy lần đầu; -1 nếu chưa.</summary>
+        public float EnergyFullAt { get; private set; } = -1f;
+
+        /// <summary>Giây kể từ đầu ván khi lần đầu có cặp Magni trong tầm; -1 nếu chưa.</summary>
+        public float FirstPairAt { get; private set; } = -1f;
 
         public event Action StateChanged;
         public event Action<string> Feedback;
+
+        /// <summary>Hướng dẫn một lần, hiện lâu hơn Feedback.</summary>
+        public event Action<string> TipRequested;
+
+        /// <summary>Câu giải thích vì sao chưa dùng được. Rỗng khi sẵn sàng.</summary>
+        public static string ReasonText(MagnetAvailability value)
+        {
+            return value switch
+            {
+                MagnetAvailability.NotEnoughEnergy => "Chưa đủ năng lượng",
+                MagnetAvailability.NeedTwoMagni => "Cần 2 Magni",
+                MagnetAvailability.NoPairInRange => "Không có cặp trong tầm",
+                _ => string.Empty
+            };
+        }
+
+        private void Awake()
+        {
+            roundStartTime = Time.time;
+        }
 
         private void OnEnable()
         {
@@ -59,25 +124,48 @@ namespace MonsterMerge
         public void AddEnergy(int amount)
         {
             int value = Mathf.Clamp(Energy + amount, 0, maxEnergy);
-            if (value != Energy)
+            if (value == Energy)
             {
-                Energy = value;
-                StateChanged?.Invoke();
+                return;
             }
+
+            Energy = value;
+            if (Energy >= maxEnergy && EnergyFullAt < 0f)
+            {
+                EnergyFullAt = Time.time - roundStartTime;
+            }
+
+            RefreshAvailability();
+            StateChanged?.Invoke();
         }
 
-        /// <summary>Nút Activate: bấm lần đầu vào chế độ chọn, bấm lần nữa để hủy.</summary>
+        /// <summary>
+        /// Nút Activate: bấm lần đầu vào chế độ chọn, bấm lần nữa để hủy.
+        /// Chưa có mục tiêu hợp lệ thì chỉ báo lý do, không vào chế độ chọn.
+        /// </summary>
         public void ToggleTargeting()
         {
             if (IsTargeting)
             {
                 SetTargeting(false);
+                return;
             }
-            else if (CanActivate)
+
+            if (!CanActivate)
             {
-                SetTargeting(true);
-                Feedback?.Invoke("Chạm vào một Magni (cấp 4)");
+                return;
             }
+
+            RefreshAvailability();
+            if (availability != MagnetAvailability.Ready)
+            {
+                Feedback?.Invoke(ReasonText(availability));
+                return;
+            }
+
+            ActivateCount++;
+            SetTargeting(true);
+            Feedback?.Invoke("Chạm vào một Magni đang sáng");
         }
 
         private void SetTargeting(bool value)
@@ -92,11 +180,16 @@ namespace MonsterMerge
 
         private void Update()
         {
-            if (!IsTargeting)
-            {
-                return;
-            }
+            RefreshAvailability();
 
+            if (IsTargeting)
+            {
+                ReadTargetTap();
+            }
+        }
+
+        private void ReadTargetTap()
+        {
             Pointer pointer = Pointer.current;
             if (pointer == null)
             {
@@ -121,6 +214,71 @@ namespace MonsterMerge
             }
         }
 
+        /// <summary>
+        /// Tính lại trạng thái kỹ năng và làm sáng các Magni có cặp trong tầm.
+        /// Chỉ duyệt Magni nên chi phí nhỏ; danh sách được dùng lại, không cấp phát mỗi frame.
+        /// </summary>
+        private void RefreshAvailability()
+        {
+            magnis.Clear();
+            IReadOnlyList<Monster> monsters = merge.ActiveMonsters;
+            for (int i = 0; i < monsters.Count; i++)
+            {
+                if (IsValidMagni(monsters[i]))
+                {
+                    magnis.Add(monsters[i]);
+                }
+            }
+
+            bool showHighlight = CanActivate;
+            bool anyPair = false;
+            for (int i = 0; i < magnis.Count; i++)
+            {
+                bool hasPartner = false;
+                for (int j = 0; j < magnis.Count && !hasPartner; j++)
+                {
+                    hasPartner = i != j && Vector2.Distance(magnis[i].Position, magnis[j].Position) <= pullRange;
+                }
+
+                anyPair |= hasPartner;
+                magnis[i].SetHighlight(showHighlight && hasPartner ? magniHighlight : 0f);
+            }
+
+            if (anyPair && FirstPairAt < 0f)
+            {
+                FirstPairAt = Time.time - roundStartTime;
+            }
+
+            MagnetAvailability next = Energy < maxEnergy ? MagnetAvailability.NotEnoughEnergy
+                : magnis.Count < 2 ? MagnetAvailability.NeedTwoMagni
+                : !anyPair ? MagnetAvailability.NoPairInRange
+                : MagnetAvailability.Ready;
+
+            if (next == availability)
+            {
+                return;
+            }
+
+            availability = next;
+            if (IsReady)
+            {
+                ShowTipOnce();
+            }
+
+            StateChanged?.Invoke();
+        }
+
+        private void ShowTipOnce()
+        {
+            if (PlayerPrefs.GetInt(MagnetTipSeenKey, 0) != 0)
+            {
+                return;
+            }
+
+            PlayerPrefs.SetInt(MagnetTipSeenKey, 1);
+            TipRequested?.Invoke("Nam châm sẵn sàng! Bấm nút rồi chạm một Magni đang sáng");
+        }
+
         /// <summary>Chọn Magni tại điểm world. Năng lượng chỉ bị trừ khi có mục tiêu hợp lệ.</summary>
         public bool TrySelectAt(Vector2 worldPoint)
         {
@@ -132,19 +290,23 @@ namespace MonsterMerge
             Monster selected = FindTapped(worldPoint);
             if (selected == null)
             {
-                Feedback?.Invoke("Hãy chạm đúng một Magni");
+                FailedAttemptCount++;
+                Feedback?.Invoke("Hãy chạm đúng một Magni đang sáng");
                 return false;
             }
 
             Monster partner = FindNearestPartner(selected);
             if (partner == null)
             {
-                Feedback?.Invoke("Không có Magni gần đó");
+                FailedAttemptCount++;
+                Feedback?.Invoke(ReasonText(MagnetAvailability.NoPairInRange));
                 return false;
             }
 
+            SuccessCount++;
             Energy = 0;
             SetTargeting(false);
+            RefreshAvailability();
             StateChanged?.Invoke();
             Feedback?.Invoke("Hút!");
             pullRoutine = StartCoroutine(Pull(selected, partner));
@@ -242,7 +404,16 @@ namespace MonsterMerge
         private void OnGameEnded()
         {
             SetTargeting(false);
+            RefreshAvailability();
             StateChanged?.Invoke();
+
+            if (logStats && Application.isEditor)
+            {
+                Debug.Log($"[MonsterMerge] Nam châm: đầy lần đầu={FormatTime(EnergyFullAt)}, có cặp lần đầu={FormatTime(FirstPairAt)}, " +
+                    $"kích hoạt={ActivateCount}, thành công={SuccessCount}, thất bại={FailedAttemptCount}");
+            }
         }
+
+        private static string FormatTime(float seconds) => seconds < 0f ? "chưa" : $"{seconds:F0}s";
     }
 }
