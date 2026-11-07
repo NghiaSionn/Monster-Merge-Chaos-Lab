@@ -149,3 +149,31 @@ Cập nhật theo từng task. Yêu cầu gốc: `production/monster-merge-tasks
 
 - Chưa ai nghe thử âm thanh; chưa thử trên Android.
 - Khi chạm giới hạn, merge mới sẽ không có vòng sáng hoặc popup. Đây là chủ ý, nhưng cần người chơi đánh giá có bị thiếu phản hồi không.
+
+## TASK-05: Giao diện hướng dẫn ngắn — IMPLEMENTED, AUTO-TEST PASS
+
+### File code
+
+| File | Thay đổi | Lý do |
+|---|---|---|
+| `Scripts/Gameplay/DangerZone.cs` | Thêm `IsWarning`: chỉ bật khi bộ đếm tràn chạy quá `warnAfter` (0,25 giây). Khi cảnh báo, vạch dày 2,5 lần và nhấp nháy 4 lần/giây; hết nguy hiểm thì về như cũ | Cảnh báo rõ khi sắp thua, không chớp vì quái rơi hay nảy qua |
+| `Scripts/Gameplay/DropController.cs` | Thêm vạch dọc `dropGuide` từ preview xuống đáy, ẩn cùng preview; thêm thuộc tính cho test | Phân biệt preview đang thả với "Tiếp theo", thấy rõ quái sẽ rơi ở đâu |
+| `Scripts/Editor/MonsterMergeSceneBuilder.cs` | Tạo `DropGuide`; rút hướng dẫn còn 2 câu, ô 860x170 thay vì 860x300 | Hướng dẫn nhỏ, không khóa input |
+| `Tests/MonsterMergePlayTests.cs`, `MonsterMergeInputTests.cs` | Thêm 6 test, gồm 2 test chạm cảm ứng giả lập | Xem `V02_TEST_REPORT.md` |
+| `Tests/MonsterMergeScreenshotTests.cs` | Kiểm tra UI không che vùng chơi ở 9:20; thêm ảnh cảnh báo | Bằng chứng ở hai tỉ lệ |
+
+### Inspector
+
+- `Managers` > `DangerZone` > nhóm **Cảnh báo sắp tràn**: `Warn After` (0,25 giây), `Warn Thickness` (2,5), `Warn Pulse Hz` (4).
+- `Tank` > `DropGuide`: màu và độ trong của vạch dọc. Vì đối tượng này do builder tạo, muốn đổi lâu dài thì sửa trong builder.
+
+### Quyết định
+
+- Hướng dẫn chỉ còn phần kéo/thả và hợp nhất; phần nam châm đã có hướng dẫn riêng từ TASK-02. Ô hướng dẫn không chặn chạm và tắt sau lần thả đầu, như v0.1.
+- Cảnh báo chỉ nằm trên vạch, không thêm chữ, vì dải trống phía trên bể đã dùng cho thông báo.
+- Nút nam châm cao 120 và nút chơi lại cao 140 theo độ phân giải tham chiếu 1080x1920, nên đủ lớn để chạm. Chưa đo trên máy thật.
+
+### Chưa xong (TASK-05)
+
+- Chạm thật trên Android chưa thử. Xem rủi ro `wasPressedThisFrame` trong `V02_TEST_REPORT.md`.
+- Thứ tự vẽ giữa vạch dọc và ô hướng dẫn trong game thật chưa xác minh bằng mắt.

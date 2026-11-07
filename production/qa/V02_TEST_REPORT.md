@@ -18,7 +18,8 @@ Nhãn: `AUTO-TEST PASS` (test tự động chạy thật), `MANUAL TEST PENDING`
 | 07/11/2026 | Sau TASK-01, chưa commit | 35 | 0 | 0 | 29 cũ không hồi quy, thêm 6 test mới; Console không có lỗi |
 | 07/11/2026 | Sau TASK-02, chưa commit | 40 | 0 | 0 | Thêm 5 test mới, điều chỉnh 5 test cũ (xem dưới); chạy lại sau khi dời ô thông báo, vẫn 40/40 |
 | 07/11/2026 | Sau TASK-03, chưa commit | 43 | 0 | 0 | Thêm 3 test; lần chạy đầu 42/1 do `T03b` đo sai thời điểm (xem dưới); Console không có lỗi |
-| 07/11/2026 | Sau TASK-04, chưa commit | 47 | 0 | 0 | Thêm 4 test; scene dựng lại; Console không có lỗi |
+| 07/11/2026 | Sau TASK-04, commit `16c0c32` | 47 | 0 | 0 | Thêm 4 test; scene dựng lại; Console không có lỗi |
+| 07/11/2026 | Sau TASK-05, chưa commit | 53 | 0 | 0 | Thêm 6 test; lần chạy đầu 52/1 do test touch xử lý sự kiện sai thời điểm (xem dưới); Console không có lỗi |
 
 ## Test mới của TASK-01
 
@@ -80,6 +81,24 @@ Mục đích của từng test không đổi: không mất năng lượng sai, b
 
 Số tiếng ít hơn nhiều so với số merge vì nhiều merge rơi vào cùng frame và tiếng sau bị bỏ do khoảng cách tối thiểu 0,05 giây. Test chỉ chứng minh tiếng có phát và không chồng nhau; **chưa ai nghe thử** âm thanh.
 
+## Test mới của TASK-05
+
+| Test | Kịch bản | Kết quả |
+|---|---|---|
+| `V02_T05a_DropGuide_FollowsPreviewDownToFloor_HiddenWithPreview` | Vạch dọc cùng X với preview, chạy từ dưới preview đến đáy; ẩn cùng preview khi cooldown | AUTO-TEST PASS |
+| `V02_T05b_ContinuousDropSpam_NeverWarns` | Thả liên tục 12 lần: vạch không lần nào báo động | AUTO-TEST PASS |
+| `V02_T05c_RealOverflow_WarnsClearlyBeforeGameOver` | Quái kẹt trên vạch: cảnh báo bật khi còn đang chơi, vạch dày hơn 2 lần, sau đó mới thua | AUTO-TEST PASS |
+| `V02_T05d_WarningClears_WhenTankIsSafeAgain` | Hết nguy hiểm: tắt cảnh báo, bộ đếm về 0, vạch về độ dày cũ | AUTO-TEST PASS |
+| `V02_T05e_TouchTap_DropsExactlyOne_AtFingerX` | Chạm cảm ứng giả lập trong bể: bắt đầu ngắm, thả đúng 1 quái tại X của ngón tay | AUTO-TEST PASS |
+| `V02_T05f_TouchOnMagnetButton_FiresButton_DoesNotDrop` | Chạm cảm ứng lên nút nam châm: nút nhận chạm, không thả quái | AUTO-TEST PASS |
+| Trong `CaptureScreens` | Ở 9:20 không có UI bấm được nào che vùng chơi | AUTO-TEST PASS |
+
+### Test touch lần đầu fail
+
+`T05e` lần đầu fail: chạm trong bể không bắt đầu ngắm. Chẩn đoán cho thấy `Pointer.current` đúng là touchscreen, vị trí đúng, đang nhấn, nhưng khi `DropController.Update` chạy thì `wasPressedThisFrame` đã là `false`. Nguyên nhân: test xử lý sự kiện chạm ngay giữa hai frame; tới frame sau Input System chạy thêm một lượt, và touchscreen tự cập nhật lại trạng thái ở mỗi lượt nên mất dấu "vừa nhấn". Đã sửa test để xếp hàng sự kiện (`queueEventOnly: true`), giống cách sự kiện tới trên máy thật.
+
+**Rủi ro còn lại:** `DropController` và `AbilityManager` đọc cú chạm bằng `wasPressedThisFrame`. Nếu trên thiết bị có lượt cập nhật input nào chạy giữa lúc chạm và lúc `Update` đọc, cú chạm sẽ bị bỏ lỡ. Theo cấu hình mặc định thì không xảy ra, nhưng **chỉ T17 trên máy Android thật mới xác nhận được**.
+
 ## Soak (bot ngẫu nhiên, chỉ ClassicCap)
 
 | Ván | Game-time | Thả | Merge | Burst | Điểm |
@@ -94,7 +113,13 @@ Số liệu nam châm từ soak sau TASK-02 (bot không dùng kỹ năng): năng
 
 ## Bằng chứng hình ảnh
 
-Lưu tại `production/qa/evidence/prototype-v0.2/`: `mm_playing_9x16.jpg`, `mm_gameover_9x16.jpg`, `mm_playing_9x20.jpg`, `mm_overload_burst_9x16.jpg`, `mm_magni_can_2_9x16.jpg`, `mm_magni_ready_9x16.jpg`, `mm_labels_rotated_9x16.jpg`, `mm_merge_ring_9x16.jpg`.
+Lưu tại `production/qa/evidence/prototype-v0.2/`: `mm_playing_9x16.jpg`, `mm_gameover_9x16.jpg`, `mm_playing_9x20.jpg`, `mm_overload_burst_9x16.jpg`, `mm_magni_can_2_9x16.jpg`, `mm_magni_ready_9x16.jpg`, `mm_labels_rotated_9x16.jpg`, `mm_merge_ring_9x16.jpg`, `mm_danger_warning_9x16.jpg`.
+
+Quan sát từ ảnh TASK-05:
+- Cảnh báo: vạch dày và đỏ rõ khi có Goo kẹt trên vạch.
+- Vạch dọc mờ từ preview xuống đáy; ô hướng dẫn chỉ còn 2 câu, nhỏ hơn.
+- 9:20: bố cục gọn, không chồng.
+- Trong ảnh, vạch dọc vẽ đè lên ô hướng dẫn. Đây là hạn chế của cách chụp (phải đổi kiểu Canvas); trong game thật UI Overlay luôn nằm trên, nhưng chưa xác minh bằng mắt.
 
 Quan sát từ ảnh TASK-04:
 - Vòng nổ burst giờ là vòng rỗng vàng nhạt, không còn nhầm với Crag.
