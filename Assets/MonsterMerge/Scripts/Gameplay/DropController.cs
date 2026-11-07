@@ -24,6 +24,8 @@ namespace MonsterMerge
         [SerializeField] private Transform previewRoot;
         [SerializeField] private SpriteRenderer previewBody;
         [SerializeField] private TextMesh previewLabel;
+        [Tooltip("Vạch dọc mờ từ preview xuống đáy, chỉ rõ quái sẽ rơi ở đâu (v0.2 TASK-05). Bỏ trống thì không hiện.")]
+        [SerializeField] private SpriteRenderer dropGuide;
 
         [Header("Cân bằng")]
         [SerializeField] private SpawnEntry[] spawnTable;
@@ -171,7 +173,37 @@ namespace MonsterMerge
 
             aimX = tank.ClampX(aimX, Current.radius);
             previewRoot.position = new Vector3(aimX, tank.SpawnY, 0f);
+            UpdateDropGuide(visible);
         }
+
+        private void UpdateDropGuide(bool visible)
+        {
+            if (dropGuide == null)
+            {
+                return;
+            }
+
+            if (dropGuide.gameObject.activeSelf != visible)
+            {
+                dropGuide.gameObject.SetActive(visible);
+            }
+
+            float top = tank.SpawnY - Current.radius;
+            float height = Mathf.Max(0f, top - tank.FloorY);
+            Transform guide = dropGuide.transform;
+            guide.position = new Vector3(aimX, tank.FloorY + height * 0.5f, 0f);
+            Vector3 scale = guide.localScale;
+            scale.y = height;
+            guide.localScale = scale;
+        }
+
+        /// <summary>Vị trí preview hiện tại; dùng cho test.</summary>
+        public Vector3 PreviewPosition => previewRoot.position;
+
+        public bool IsPreviewVisible => previewRoot.gameObject.activeSelf;
+
+        /// <summary>Vạch chỉ vị trí thả; null nếu scene chưa có.</summary>
+        public Transform DropGuideTransform => dropGuide != null ? dropGuide.transform : null;
 
         private void OnApplicationPause(bool paused)
         {

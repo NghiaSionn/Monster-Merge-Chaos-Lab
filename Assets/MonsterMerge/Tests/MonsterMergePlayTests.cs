@@ -511,6 +511,85 @@ namespace MonsterMerge.Tests
             Assert.AreEqual(1f, comboText.rectTransform.localScale.x, 0.0001f);
         }
 
+        [UnityTest]
+        public IEnumerator V02_T05a_DropGuide_FollowsPreviewDownToFloor_HiddenWithPreview()
+        {
+            yield return null;
+            Transform guide = drop.DropGuideTransform;
+            Assert.NotNull(guide, "Scene phải có vạch chỉ vị trí thả.");
+            Assert.IsTrue(drop.IsPreviewVisible);
+            Assert.IsTrue(guide.gameObject.activeSelf);
+            Assert.AreEqual(drop.PreviewPosition.x, guide.position.x, 0.0001f);
+            Assert.AreEqual(tank.FloorY, guide.position.y - guide.localScale.y * 0.5f, 0.001f, "Vạch phải chạm đáy bể.");
+            Assert.AreEqual(tank.SpawnY - drop.Current.radius, guide.position.y + guide.localScale.y * 0.5f, 0.001f, "Vạch bắt đầu ngay dưới preview.");
+
+            Assert.NotNull(drop.TryDropAt(0f));
+            yield return null;
+            Assert.IsFalse(drop.IsPreviewVisible, "Đang cooldown thì ẩn preview.");
+            Assert.IsFalse(guide.gameObject.activeSelf, "Ẩn preview thì ẩn luôn vạch.");
+
+            yield return Seconds(0.6f);
+            Assert.IsTrue(guide.gameObject.activeSelf);
+            Assert.AreEqual(drop.PreviewPosition.x, guide.position.x, 0.0001f);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T05b_ContinuousDropSpam_NeverWarns()
+        {
+            bool everWarned = false;
+            for (int i = 0; i < 12; i++)
+            {
+                drop.TryDropAt(Mathf.Lerp(-1.8f, 1.8f, i / 11f));
+                for (float end = Time.time + 0.52f; Time.time < end;)
+                {
+                    everWarned |= danger.IsWarning;
+                    yield return null;
+                }
+            }
+
+            Assert.IsFalse(everWarned, "Quái đang rơi qua vạch không được làm vạch báo động.");
+            Assert.AreEqual(GameState.Playing, game.State);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T05c_RealOverflow_WarnsClearlyBeforeGameOver()
+        {
+            Transform line = GameObject.Find("DangerLine").transform;
+            float baseThickness = line.localScale.y;
+
+            Monster stuck = merge.Spawn(merge.GetTier(3), new Vector2(0f, tank.DangerY + 0.5f));
+            stuck.Body.bodyType = RigidbodyType2D.Kinematic;
+
+            yield return WaitUntil(() => danger.IsWarning, 3f);
+            Assert.IsTrue(danger.IsWarning);
+            Assert.AreEqual(GameState.Playing, game.State, "Phải cảnh báo trước khi thua.");
+            yield return null;
+            Assert.Greater(line.localScale.y, baseThickness * 2f, "Vạch phải dày lên rõ khi cảnh báo.");
+
+            yield return WaitUntil(() => game.State == GameState.GameOver, 3f);
+            Assert.AreEqual(GameState.GameOver, game.State);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T05d_WarningClears_WhenTankIsSafeAgain()
+        {
+            Transform line = GameObject.Find("DangerLine").transform;
+            float baseThickness = line.localScale.y;
+
+            Monster stuck = merge.Spawn(merge.GetTier(3), new Vector2(0f, tank.DangerY + 0.5f));
+            stuck.Body.bodyType = RigidbodyType2D.Kinematic;
+            yield return WaitUntil(() => danger.IsWarning, 3f);
+            Assert.IsTrue(danger.IsWarning);
+
+            stuck.Body.position = new Vector2(0f, tank.FloorY + stuck.Radius);
+            yield return FixedSteps(2);
+            yield return null;
+
+            Assert.IsFalse(danger.IsWarning);
+            Assert.AreEqual(0f, danger.Timer);
+            Assert.AreEqual(baseThickness, line.localScale.y, 0.0001f, "Hết nguy hiểm thì vạch trở lại bình thường.");
+        }
+
         private static float UprightError(Transform transform) => Mathf.Abs(Mathf.DeltaAngle(transform.eulerAngles.z, 0f));
 
         [UnityTest]

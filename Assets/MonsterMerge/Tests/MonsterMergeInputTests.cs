@@ -145,6 +145,56 @@ namespace MonsterMerge.Tests
         }
 
         [UnityTest]
+        public IEnumerator V02_T05e_TouchTap_DropsExactlyOne_AtFingerX()
+        {
+            var touch = InputSystem.AddDevice<Touchscreen>();
+            touch.MakeCurrent();
+            Vector2 screen = ToScreen(new Vector2(-0.8f, 0f));
+
+            // Xếp hàng sự kiện để Input System xử lý ở đầu frame như trên máy thật. Nếu xử lý ngay trong test,
+            // Touchscreen tự cập nhật lại ở lượt kế tiếp và wasPressedThisFrame đã thành false khi Update chạy.
+            input.BeginTouch(1, screen, queueEventOnly: true);
+            yield return null;
+            yield return null;
+            Assert.IsTrue(drop.IsAiming, "Chạm trong vùng chơi phải bắt đầu ngắm.");
+            Assert.AreEqual(0, merge.ActiveMonsters.Count);
+
+            input.EndTouch(1, screen, queueEventOnly: true);
+            yield return null;
+            yield return null;
+
+            Assert.AreEqual(1, merge.ActiveMonsters.Count);
+            Assert.AreEqual(-0.8f, merge.ActiveMonsters[0].Position.x, 0.05f);
+        }
+
+        [UnityTest]
+        public IEnumerator V02_T05f_TouchOnMagnetButton_FiresButton_DoesNotDrop()
+        {
+            merge.Spawn(merge.GetTier(4), new Vector2(-1f, tank.FloorY + 0.48f));
+            merge.Spawn(merge.GetTier(4), new Vector2(1f, tank.FloorY + 0.48f));
+            yield return new WaitForSeconds(0.3f);
+            int monstersBefore = merge.ActiveMonsters.Count;
+            ability.AddEnergy(100);
+            yield return null;
+
+            var touch = InputSystem.AddDevice<Touchscreen>();
+            touch.MakeCurrent();
+            Vector2 screen = ButtonCenter();
+
+            input.BeginTouch(1, screen, queueEventOnly: true);
+            yield return null;
+            yield return null;
+            Assert.IsFalse(drop.IsAiming, "Chạm lên nút không được bắt đầu ngắm.");
+
+            input.EndTouch(1, screen, queueEventOnly: true);
+            yield return null;
+            yield return null;
+
+            Assert.AreEqual(monstersBefore, merge.ActiveMonsters.Count, "Chạm nút không được thả quái.");
+            Assert.IsTrue(ability.IsTargeting, "Nút phải nhận chạm qua EventSystem.");
+        }
+
+        [UnityTest]
         public IEnumerator T10_ClickOnButton_FiresButton_DoesNotDrop()
         {
             // v0.2 TASK-02: nút chỉ vào chế độ chọn khi có cặp Magni trong tầm.

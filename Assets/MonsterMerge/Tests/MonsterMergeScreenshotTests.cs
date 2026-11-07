@@ -126,6 +126,17 @@ namespace MonsterMerge.Tests
             Assert.AreEqual(2400, Screen.height, "Game View chưa đổi độ phân giải.");
             yield return Capture("mm_playing_9x20.jpg");
 
+            // TASK-05: ở 9:20 cũng không có UI bấm được nào che vùng chơi.
+            var tallTank = Object.FindAnyObjectByType<TankBounds>();
+            for (float gridY = tallTank.FloorY + 0.1f; gridY <= tallTank.SpawnY + 0.3f; gridY += 0.2f)
+            {
+                for (float gridX = tallTank.InnerLeft + 0.1f; gridX <= tallTank.InnerRight - 0.1f; gridX += 0.2f)
+                {
+                    Vector2 screen = Camera.main.WorldToScreenPoint(new Vector2(gridX, gridY));
+                    Assert.IsFalse(PointerUtility.IsOverUi(screen), $"UI che vùng chơi ở 9:20 tại ({gridX:F1}, {gridY:F1}).");
+                }
+            }
+
             SetResolution(1080, 1920);
             SceneManager.LoadScene(ScenePath);
             yield return null;
@@ -157,6 +168,23 @@ namespace MonsterMerge.Tests
             Assert.Greater(merge.MergeCount, mergesBefore, "Cặp Goo phải hợp nhất để chụp hiệu ứng.");
             yield return new WaitForSeconds(0.05f);
             yield return Capture("mm_merge_ring_9x16.jpg");
+
+            // TASK-05: quái kẹt trên vạch, chụp lúc đang cảnh báo nhưng chưa thua.
+            SceneManager.LoadScene(ScenePath);
+            yield return null;
+            yield return null;
+            var warnMerge = Object.FindAnyObjectByType<MergeManager>();
+            var warnTank = Object.FindAnyObjectByType<TankBounds>();
+            var danger = Object.FindAnyObjectByType<DangerZone>();
+            Monster stuck = warnMerge.Spawn(warnMerge.GetTier(3), new Vector2(0.6f, warnTank.DangerY + 0.3f));
+            stuck.Body.bodyType = RigidbodyType2D.Kinematic;
+            for (float waited = 0f; !danger.IsWarning && waited < 3f; waited += Time.deltaTime)
+            {
+                yield return null;
+            }
+
+            Assert.IsTrue(danger.IsWarning, "Phải đang cảnh báo để chụp.");
+            yield return Capture("mm_danger_warning_9x16.jpg");
 
             PlayerPrefs.SetInt(GameUI.HintSeenKey, savedHint);
             PlayerPrefs.SetInt(GameManager.BestScoreKey, savedBest);

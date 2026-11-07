@@ -322,6 +322,10 @@ namespace MonsterMerge.EditorTools
             var preview = new GameObject("Preview");
             (SpriteRenderer previewBody, TextMesh previewLabel) = CreateVisual(preview.transform, circle, unlit, 2);
 
+            // Vạch chỉ vị trí thả: mờ, sau quái; DropController tự đặt chiều cao và vị trí mỗi frame.
+            SpriteRenderer dropGuide = CreateSprite("DropGuide", tank.transform, square, unlit, new Color(1f, 1f, 1f, 0.18f), 2,
+                new Vector2(0f, tank.FloorY), new Vector2(0.03f, 1f));
+
             Wire(game, ("merge", merge));
 
             Wire(merge,
@@ -344,7 +348,8 @@ namespace MonsterMerge.EditorTools
                 ("worldCamera", camera),
                 ("previewRoot", preview.transform),
                 ("previewBody", previewBody),
-                ("previewLabel", previewLabel));
+                ("previewLabel", previewLabel),
+                ("dropGuide", dropGuide));
             SetSpawnTable(drop, (tiers[0], 80f), (tiers[1], 20f));
 
             Wire(danger,
@@ -515,11 +520,12 @@ namespace MonsterMerge.EditorTools
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(860f, 120f), new Vector2(0.5f, 0f));
 
             // Chỉ dẫn lần đầu: không chặn raycast để vẫn kéo thả được xuyên qua
+            // v0.2 TASK-05: chỉ 2 câu, ô nhỏ; nam châm đã có hướng dẫn riêng khi lần đầu dùng được.
             Image hint = CreateImage("HintPanel", safeArea, PanelColor, false);
-            Place(hint.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(860f, 300f), new Vector2(0.5f, 0.5f));
+            Place(hint.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(860f, 170f), new Vector2(0.5f, 0.5f));
             Text hintText = CreateText("HintText", hint.rectTransform, font,
-                "Kéo để chọn vị trí, nhả để thả\n2 quái cùng cấp sẽ hợp nhất\nĐầy năng lượng để dùng nam châm", 42, TextAnchor.MiddleCenter,
-                new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(820f, 280f), new Vector2(0.5f, 0.5f));
+                "Kéo để chọn vị trí, nhả để thả\n2 quái giống nhau chạm nhau sẽ hợp nhất", 40, TextAnchor.MiddleCenter,
+                new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(820f, 150f), new Vector2(0.5f, 0.5f));
             hintText.lineSpacing = 1.2f;
 
             RectTransform floating = CreateRect("FloatingRoot", safeArea);
