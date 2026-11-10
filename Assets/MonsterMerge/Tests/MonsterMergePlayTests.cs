@@ -1050,12 +1050,29 @@ namespace MonsterMerge.Tests
         [UnityTest]
         public IEnumerator Soak_RandomBot_FullGames_NoErrors()
         {
-            // Bot ngẫu nhiên chơi hết ván ở tốc độ cao; bắt lỗi trạng thái hiếm và đo độ dài ván.
+            yield return SoakRounds(MaxTierMergeMode.ClassicCap);
+        }
+
+        // v0.2 TASK-06: soak cả chế độ B. Ván B có thể dài hơn nhiều nên nới thời gian chờ của test.
+        [UnityTest, Timeout(900000)]
+        public IEnumerator Soak_OverloadBurst_FullGames_NoErrors()
+        {
+            yield return SoakRounds(MaxTierMergeMode.OverloadBurst);
+        }
+
+        /// <summary>
+        /// Bot thả ngẫu nhiên ở tốc độ x6, không dùng nam châm; bắt lỗi trạng thái hiếm và đo độ dài ván.
+        /// Cùng seed cho cả hai chế độ để so sánh công bằng. Bot không đại diện người chơi thật.
+        /// </summary>
+        private IEnumerator SoakRounds(MaxTierMergeMode mode)
+        {
             Time.timeScale = 6f;
             Random.InitState(12345);
 
             for (int round = 0; round < 3; round++)
             {
+                // Restart nạp lại scene nên chế độ quay về giá trị Inspector; đặt lại mỗi ván.
+                merge.MaxTierMode = mode;
                 float started = Time.time;
                 int drops = 0;
 
@@ -1076,8 +1093,9 @@ namespace MonsterMerge.Tests
                 }
 
                 TestContext.Out.WriteLine(
-                    $"Ván {round + 1}: {Time.time - started:F0}s game-time, {drops} lần thả, điểm {game.Score}, " +
-                    $"cấp cao nhất {merge.ActiveMonsters.Max(m => m.Tier)}, còn {merge.ActiveMonsters.Count} quái, kết thúc={game.State}");
+                    $"[{mode}] Ván {round + 1}: {Time.time - started:F0}s game-time, {drops} lần thả, {merge.MergeCount} merge, " +
+                    $"{merge.BurstCount} burst, điểm {game.Score}, cấp cao nhất {merge.ActiveMonsters.Select(m => m.Tier).DefaultIfEmpty(0).Max()}, " +
+                    $"còn {merge.ActiveMonsters.Count} quái, kết thúc={game.State}");
 
                 game.EndGame();
                 game.Restart();
