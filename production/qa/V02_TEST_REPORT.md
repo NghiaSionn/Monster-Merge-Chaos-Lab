@@ -1,6 +1,8 @@
 # V0.2 Test Report
 
-Nhãn: `AUTO-TEST PASS` (test tự động chạy thật), `MANUAL TEST PENDING` (cần người chơi), `NOT RUN`.
+Nhãn: `AUTO-TEST PASS` (test tự động chạy thật), `DEFERRED` (test thủ công hoãn đến khi game hoàn thiện), `NOT RUN`.
+
+**Kết quả cuối (10/11/2026): 54 pass, 0 fail, 0 skip** trên Unity Editor. **Chưa có test thủ công nào**: theo quyết định ngày 10/11/2026, chơi tay và test trên điện thoại chỉ làm khi game hoàn thiện. Mọi kết luận dưới đây chỉ dựa trên test tự động.
 
 ## Môi trường
 
@@ -19,7 +21,8 @@ Nhãn: `AUTO-TEST PASS` (test tự động chạy thật), `MANUAL TEST PENDING`
 | 07/11/2026 | Sau TASK-02, chưa commit | 40 | 0 | 0 | Thêm 5 test mới, điều chỉnh 5 test cũ (xem dưới); chạy lại sau khi dời ô thông báo, vẫn 40/40 |
 | 07/11/2026 | Sau TASK-03, chưa commit | 43 | 0 | 0 | Thêm 3 test; lần chạy đầu 42/1 do `T03b` đo sai thời điểm (xem dưới); Console không có lỗi |
 | 07/11/2026 | Sau TASK-04, commit `16c0c32` | 47 | 0 | 0 | Thêm 4 test; scene dựng lại; Console không có lỗi |
-| 07/11/2026 | Sau TASK-05, chưa commit | 53 | 0 | 0 | Thêm 6 test; lần chạy đầu 52/1 do test touch xử lý sự kiện sai thời điểm (xem dưới); Console không có lỗi |
+| 07/11/2026 | Sau TASK-05, commit `c10167f` | 53 | 0 | 0 | Thêm 6 test; lần chạy đầu 52/1 do test touch xử lý sự kiện sai thời điểm (xem dưới); Console không có lỗi |
+| 10/11/2026 | Bàn giao, sau TASK-06 | 54 | 0 | 0 | Thêm soak `OverloadBurst`; Console không có lỗi |
 
 ## Test mới của TASK-01
 
@@ -99,15 +102,20 @@ Số tiếng ít hơn nhiều so với số merge vì nhiều merge rơi vào c�
 
 **Rủi ro còn lại:** `DropController` và `AbilityManager` đọc cú chạm bằng `wasPressedThisFrame`. Nếu trên thiết bị có lượt cập nhật input nào chạy giữa lúc chạm và lúc `Update` đọc, cú chạm sẽ bị bỏ lỡ. Theo cấu hình mặc định thì không xảy ra, nhưng **chỉ T17 trên máy Android thật mới xác nhận được**.
 
-## Soak (bot ngẫu nhiên, chỉ ClassicCap)
+## Soak cả hai chế độ (TASK-06)
 
-| Ván | Game-time | Thả | Merge | Burst | Điểm |
-|---:|---:|---:|---:|---:|---:|
-| 1 | 93s | 181 | 149 | 0 | 4915 |
-| 2 | 95s | 185 | 163 | 0 | 5325 |
-| 3 | 97s | 189 | 162 | 0 | 5090 |
+Bot thả ngẫu nhiên ở tốc độ x6, không dùng nam châm; cùng seed cho cả hai chế độ. Mỗi ván dừng khi thua hoặc khi chạm giới hạn 600 giây game-time. Lần chạy ngày 10/11/2026:
 
-Soak cho OverloadBurst chưa chạy, sẽ thêm ở TASK-06. Bot không đại diện cho người chơi thật.
+| Chế độ | Ván | Game-time | Thả | Merge | Burst | Điểm | Còn lại | Kết thúc |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| ClassicCap | 1 | 97s | 188 | 160 | 0 | 5075 | 28 quái | GameOver |
+| ClassicCap | 2 | 88s | 167 | 141 | 0 | 4770 | 26 quái | GameOver |
+| ClassicCap | 3 | 87s | 166 | 138 | 0 | 4665 | 28 quái | GameOver |
+| OverloadBurst | 1 | **600s (giới hạn)** | 1155 | 1100 | 41 | 48280 | 14 quái | **Vẫn đang chơi** |
+| OverloadBurst | 2 | **600s (giới hạn)** | 1162 | 1109 | 42 | 49180 | 11 quái | **Vẫn đang chơi** |
+| OverloadBurst | 3 | **600s (giới hạn)** | 1161 | 1105 | 43 | 49745 | 13 quái | **Vẫn đang chơi** |
+
+**Phát hiện cho thiết kế:** với `OverloadBurst`, bot ngẫu nhiên không làm tràn bể ván nào. Sau 10 phút bể chỉ còn 11–14 quái và điểm cao gấp khoảng 10 lần. Luật burst có thể đã xóa luôn điều kiện thua. Chưa đo được ván B dài tới đâu vì chạm giới hạn của test. Bot không đại diện người chơi thật, nên đây là dữ liệu để cân nhắc khi chọn A/B, chưa phải kết luận. Chưa đổi luật.
 
 Số liệu nam châm từ soak sau TASK-02 (bot không dùng kỹ năng): năng lượng đầy lần đầu ở giây 5–6, cặp Magni đầu tiên ở giây 11–13. Khớp với nhận xét năng lượng hồi quá nhanh trong báo cáo playtest.
 
@@ -141,6 +149,20 @@ Quan sát từ ảnh burst:
 | Hạng mục | Trạng thái |
 |---|---|
 | `burstPushImpulse` lớn hơn 0 | NOT RUN: mặc định 0, chưa có test |
-| Soak OverloadBurst | NOT RUN: thuộc TASK-06 |
-| Chơi tay 6 ván A/B | MANUAL TEST PENDING |
-| Android | MANUAL TEST PENDING: chưa build APK |
+| Chơi tay 6 ván A/B, ván tắt juice, ván dùng nam châm ngay (TASK-07) | DEFERRED: chỉ test khi game hoàn thiện |
+| Best Score sau khi thoát Play / đóng mở app (T18) | DEFERRED |
+| Nghe thử âm thanh | DEFERRED |
+| Android trên máy thật (T17, TASK-08) | APK đã build ngày 08/11/2026 (xem dưới). Test trên máy: DEFERRED. Lần thử kết nối ngày 08/11/2026 thất bại: Windows báo thiết bị USB lỗi "Device Descriptor Request Failed" |
+| Popup điểm và thứ tự vẽ UI trong game thật | DEFERRED: ảnh chụp không thể hiện được do cách chụp |
+
+## Build Android (TASK-08)
+
+| Mục | Kết quả |
+|---|---|
+| Cách build | Người phát triển bấm `Tools > Monster Merge > Build Android Dev APK` (MCP không cho phép gọi build) |
+| Kết quả | Succeeded, 0 lỗi, 1 cảnh báo |
+| Thời gian | 12 phút 9 giây (IL2CPP) |
+| File | `Builds/Android/MonsterMerge-v0.2-dev.apk`, 40,4 MB; không đưa vào git |
+| Cấu hình | Development, IL2CPP, ARM64, minSdk 26, màn dọc, khóa debug mặc định, chỉ `GameScene` |
+| Cảnh báo | Có vẻ là `clang++: warning: '-x c++' after last input file has no effect` của IL2CPP; vô hại |
+| Thiết bị | Chưa test: `adb devices` trống, Windows báo lỗi USB khi cắm. Hoãn đến khi game hoàn thiện |

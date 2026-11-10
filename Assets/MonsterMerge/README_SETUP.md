@@ -23,6 +23,7 @@ Tài liệu thiết kế: `MONSTER_MERGE_GDD_v0.1.md`. Danh sách việc: `MONST
 | Tools > Monster Merge > Build Prototype Scene | Dựng lại `GameScene` và `Monster.prefab`. Thay đổi tay trong hai file này sẽ mất. `MonsterData` và sprite đã có được giữ nguyên |
 | Tools > Monster Merge > Set Game View 9-16 | Đặt Game View 1080x1920 |
 | Tools > Monster Merge > Run Play Mode Tests | Chạy test, ghi kết quả vào `Temp/MonsterMergeTestResults.txt` |
+| Tools > Monster Merge > Build Android Dev APK | Build APK Development, chỉ gồm `GameScene`, ra `Builds/Android/` |
 
 ## Chỉnh cân bằng
 
@@ -107,23 +108,26 @@ Bot không dùng nam châm và không có chiến thuật, nên số liệu trê
 
 ## Trạng thái checklist
 
-Bảng trạng thái, kết quả test và lỗi đã sửa nằm ở `production/qa/prototype-v0.1-review.md`. Kết quả chơi thử nằm ở `production/qa/playtests/`.
+- v0.1: `production/qa/prototype-v0.1-review.md`.
+- v0.2: `production/qa/V02_IMPLEMENTATION_REPORT.md` (phần Bàn giao ở đầu file) và `production/qa/V02_TEST_REPORT.md`.
+- Lịch sử thay đổi: `CHANGELOG.md` ở thư mục gốc.
 
-## Cần người kiểm tra trong Editor
+## Test thủ công: hoãn đến khi game hoàn thiện
 
-1. Bấm **Chơi lại** sau khi thua, lặp lại vài lần.
-2. Thử cảm giác Boing, Goo và Crag. Goo có quá dính hoặc chưa đủ dính không?
-3. Đánh giá nam châm: năng lượng có đầy quá nhanh, kỹ năng có đáng dùng không?
-4. Thoát Play, vào lại, xác nhận Kỷ lục vẫn còn.
-5. Chơi liên tục 10–15 phút và theo dõi Console.
+Theo quyết định ngày 10/11/2026, **chỉ test thủ công khi game hoàn thiện**. Lúc đó cần:
+
+1. Chơi 6 ván A/B theo `production/qa/V02_PLAYTEST_FORM.md`, thêm một ván tắt `Juice Enabled` và một ván dùng nam châm ngay khi sáng.
+2. Bấm **Chơi lại** sau khi thua vài lần; thoát Play rồi vào lại để xác nhận Kỷ lục vẫn còn.
+3. Đánh giá cảm giác Boing, Goo, Crag; năng lượng có đầy quá nhanh; nam châm có đáng dùng; âm thanh.
+4. Chơi liên tục 10–15 phút và theo dõi Console.
 
 ## Android
 
-Editor đã có module Android, SDK, NDK và OpenJDK; build target đang là Android. **Chưa build APK nào.**
+Editor đã có module Android, SDK, NDK và OpenJDK; build target đang là Android. APK Development đã build ngày 08/11/2026; **chưa test trên máy thật**.
 
-1. Trong Unity: File > Build Profiles > Android.
-2. Bật Development Build, chọn Build, cài APK lên máy và chạy T17, T18.
-3. Kiểm tra thêm mục P2: một ngón, không chạm nhầm UI, frame rate, pause/resume.
+1. Bấm `Tools > Monster Merge > Build Android Dev APK`. Kết quả nằm ở `Builds/Android/MonsterMerge-v0.2-dev.apk` (không đưa vào git) và `Temp/MonsterMergeBuildResult.txt`.
+2. Cắm máy, bật USB debugging, cài APK và chạy T17, T18.
+3. Kiểm tra: chạm một ngón, không chạm nhầm UI, safe area, frame rate, pause/resume.
 4. Ghi tên máy, phiên bản Android và kết quả thật vào `production/qa/`.
 
 ## Known issues

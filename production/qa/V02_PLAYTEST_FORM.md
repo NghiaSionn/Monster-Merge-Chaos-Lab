@@ -1,6 +1,8 @@
 # MONSTER MERGE v0.2 — PHIẾU CHƠI THỬ A/B
 
-Người chơi: __________  Ngày: __________  Bản build/commit: __________
+> **Hoãn (10/11/2026):** người phát triển quyết định chỉ test thủ công khi game hoàn thiện. Phiếu được giữ nguyên để dùng lúc đó; khi điền, ghi lại commit thật của bản đang chơi thay cho commit bên dưới.
+
+Người chơi: __________  Ngày: 07/11/2026  Bản build/commit: `dc44039` (Unity Editor, Game View 1080x1920)
 
 **Chơi 3 ván mỗi chế độ.** A = ClassicCap (Lv5 không merge), B = OverloadBurst (Lv5+Lv5 biến mất + thưởng điểm). Thứ tự thử tốt nhất: A1, B1, A2, B2, A3, B3; tránh chơi hết A rồi mới B khi đang làm quen.
 

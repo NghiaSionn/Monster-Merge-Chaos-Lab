@@ -2,6 +2,30 @@
 
 Cập nhật theo từng task. Yêu cầu gốc: `production/monster-merge-tasks-v0.2.md`. Quyết định phạm vi: `production/v0.2-scope-notes.md`.
 
+## Bàn giao sprint v0.2 (10/11/2026)
+
+| Task | Trạng thái |
+|---|---|
+| TASK-01 Luật cấp cuối A/B | IMPLEMENTED, AUTO-TEST PASS |
+| TASK-02 Phản hồi nam châm | IMPLEMENTED, AUTO-TEST PASS |
+| TASK-03 Nhãn số đứng thẳng | IMPLEMENTED, AUTO-TEST PASS |
+| TASK-04 Juice hợp nhất | IMPLEMENTED, AUTO-TEST PASS |
+| TASK-05 Hướng dẫn, vạch thả, cảnh báo tràn | IMPLEMENTED, AUTO-TEST PASS |
+| TASK-06 Kiểm thử hồi quy tự động | AUTO-TEST PASS: 54/54, soak cả hai chế độ |
+| TASK-07 Chơi tay A/B | **DEFERRED** |
+| TASK-08 Android | APK Development đã build; test trên máy **DEFERRED** |
+
+**Quyết định ngày 10/11/2026: chỉ test thủ công khi game hoàn thiện.** Người phát triển bỏ qua các bước test thủ công trong sprint này. Vì vậy chưa có bằng chứng nào về cảm nhận khi chơi, âm thanh, hay việc chạy trên điện thoại. Không mục nào trong báo cáo này được hiểu là "đã chơi thử đạt" hay "APK đã kiểm chứng".
+
+**Việc phải làm khi game hoàn thiện:**
+1. Chơi 6 ván A/B theo `production/qa/V02_PLAYTEST_FORM.md`, thêm một ván tắt `Juice Enabled` và một ván dùng nam châm ngay khi sáng.
+2. Kiểm tra Best Score sau khi thoát Play Mode, và sau khi đóng/mở app trên điện thoại.
+3. Cài APK (`Tools > Monster Merge > Build Android Dev APK`) lên máy thật: chạm một ngón, safe area, pause/resume, FPS, popup, âm thanh. Xác nhận rủi ro đọc cú chạm ghi trong `V02_TEST_REPORT.md`.
+
+**Điểm cần lưu ý khi chọn A/B:** soak cho thấy với `OverloadBurst`, bot ngẫu nhiên không thua ván nào trong 10 phút, trong khi `ClassicCap` thua sau khoảng 90 giây. Luật B có thể đã xóa điều kiện thua. Xem `V02_TEST_REPORT.md`.
+
+**Vấn đề đã biết nhưng chưa xử lý:** năng lượng hồi quá nhanh (đầy ở giây 5–6) và combo quá dễ đạt; không task nào của v0.2 xử lý hai vấn đề này.
+
 ## TASK-01: Luật cấp cuối A/B — IMPLEMENTED, AUTO-TEST PASS
 
 ### File code
@@ -177,3 +201,28 @@ Cập nhật theo từng task. Yêu cầu gốc: `production/monster-merge-tasks
 
 - Chạm thật trên Android chưa thử. Xem rủi ro `wasPressedThisFrame` trong `V02_TEST_REPORT.md`.
 - Thứ tự vẽ giữa vạch dọc và ô hướng dẫn trong game thật chưa xác minh bằng mắt.
+
+## TASK-06: Kiểm thử hồi quy tự động — AUTO-TEST PASS
+
+| File | Thay đổi |
+|---|---|
+| `Tests/MonsterMergePlayTests.cs` | Tách soak thành hàm dùng chung `SoakRounds`; thêm `Soak_OverloadBurst_FullGames_NoErrors` (thời gian chờ 15 phút); log thêm số merge và số burst mỗi ván |
+
+- Toàn bộ 29 test v0.1 chạy lại không hồi quy; tổng cộng 54 test pass.
+- Báo cáo đặt ở `production/qa/V02_TEST_REPORT.md` thay vì `Assets/MonsterMerge/Docs/`, theo quyết định phạm vi số 6.
+- Soak `OverloadBurst` mất khoảng 5 phút vì cả 3 ván đều chạm giới hạn 600 giây game-time.
+
+## TASK-07: Chơi tay A/B — DEFERRED
+
+Hoãn đến khi game hoàn thiện. Phiếu `production/qa/V02_PLAYTEST_FORM.md` đã có hướng dẫn đổi chế độ và bật/tắt juice. Log cuối ván trong Console cung cấp sẵn điểm, thời gian, số merge, số burst và số liệu nam châm.
+
+## TASK-08: Android — APK BUILT, DEVICE TEST DEFERRED
+
+| File | Thay đổi | Lý do |
+|---|---|---|
+| `Scripts/Editor/MonsterMergeAndroidBuild.cs` | Menu `Tools > Monster Merge > Build Android Dev APK`: build Development, chỉ `GameScene`, xuất ra `Builds/Android/`, ghi kết quả vào `Temp/MonsterMergeBuildResult.txt` | MCP không cho phép gọi build, nên người phát triển bấm menu |
+| `.gitignore` | Thêm `/.utmp/` | Thư mục tạm do lần build Android tạo ra |
+
+- Build thành công ngày 08/11/2026: 12 phút 9 giây, APK 40,4 MB, 0 lỗi, 1 cảnh báo vô hại của IL2CPP.
+- Lần thử kết nối điện thoại ngày 08/11/2026 thất bại do lỗi USB. Test trên máy hoãn đến khi game hoàn thiện.
+- Sau lần build, Unity tự cập nhật thiết lập lọc shader URP và `preloadedAssets`. `UnityConnectSettings` chuyển sang bật kết nối Unity Services; thay đổi này chưa được commit, chờ người phát triển xác nhận.
